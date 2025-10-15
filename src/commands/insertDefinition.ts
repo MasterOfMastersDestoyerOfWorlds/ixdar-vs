@@ -80,6 +80,87 @@ async function replaceWithShortcode(editor: vscode.TextEditor, range: vscode.Ran
 	});
 }
 
+async function replaceAllOccurrencesInDocument(document: vscode.TextDocument, word: string): Promise<number> {
+	const text = document.getText();
+	const shortcode = `{{< def "${word}" >}}`;
+	
+	// Find all word boundaries for the word (case-insensitive)
+	const wordRegex = new RegExp(`\\b${word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'gi');
+	const matches: vscode.Range[] = [];
+	let match;
+	
+	while ((match = wordRegex.exec(text)) !== null) {
+		const startPos = document.positionAt(match.index);
+		const endPos = document.positionAt(match.index + match[0].length);
+		matches.push(new vscode.Range(startPos, endPos));
+	}
+	
+	if (matches.length === 0) {
+		return 0;
+	}
+	
+	// Open the document in an editor if not already open
+	const editor = await vscode.window.showTextDocument(document, { preview: false, preserveFocus: true });
+	
+	// Replace all occurrences in reverse order to maintain positions
+	await editor.edit((editBuilder: vscode.TextEditorEdit) => {
+		for (let i = matches.length - 1; i >= 0; i--) {
+			editBuilder.replace(matches[i], shortcode);
+		}
+	});
+	
+	return matches.length;
+}
+
+export async function insertDefinitionForWord(word: string, filePath: string): Promise<{ success: boolean; message: string; replacements?: number }> {
+	try {
+		// Open or get the document
+		const uri = vscode.Uri.file(filePath);
+		let document: vscode.TextDocument;
+		
+		try {
+			document = await vscode.workspace.openTextDocument(uri);
+		} catch (error) {
+			return { success: false, message: `Failed to open file: ${filePath}` };
+		}
+		
+		// Check if it's a markdown file
+		if (document.languageId !== 'markdown' && !document.fileName.toLowerCase().endsWith('.md')) {
+			return { success: false, message: 'Definition insertion is only available in Markdown files.' };
+		}
+		
+		const term = word.trim();
+		if (!term) {
+			return { success: false, message: 'Word cannot be empty.' };
+		}
+		
+		// Get the definition file URI
+		const fileUri = await definitionFileUriForDocument(term, document);
+		if (!fileUri) {
+			return { success: false, message: 'Unable to resolve workspace folder for definitions.' };
+		}
+		
+		// Ensure definition file exists
+		await ensureDefinitionFile(term, fileUri);
+		
+		// Replace all occurrences
+		const replacements = await replaceAllOccurrencesInDocument(document, term);
+		
+		if (replacements === 0) {
+			return { success: true, message: `No occurrences of "${term}" found in the document.`, replacements: 0 };
+		}
+		
+		return { 
+			success: true, 
+			message: `Replaced ${replacements} occurrence(s) of "${term}" with definition shortcode.`,
+			replacements 
+		};
+		
+	} catch (error: any) {
+		return { success: false, message: `Error: ${error.message}` };
+	}
+}
+
 export function registerInsertDefinitionCommand(context: vscode.ExtensionContext) {
 	const disposable = vscode.commands.registerCommand('ixdar-vs.insertDefinitionShortcode', async () => {
 		const editor = vscode.window.activeTextEditor;

@@ -1,7 +1,7 @@
 // The module 'vscode' contains the VS Code extensibility API
 // Import the module and reference it with the alias vscode in your code below
 import * as vscode from "vscode";
-import { registerInsertDefinitionCommand } from "./commands/insertDefinition";
+import { registerInsertDefinitionCommand, insertDefinitionForWord } from "./commands/insertDefinition";
 import * as http from "http";
 
 // This method is called when your extension is activated
@@ -100,10 +100,20 @@ export async function activate(context: vscode.ExtensionContext) {
         },
         {
           name: "insert_definition_shortcode",
-          description: "Insert a definition shortcode for the word at cursor in a Markdown file. Fetches Wikipedia summary and creates a Hugo shortcode.",
+          description: "Insert a definition shortcode in a Markdown file. Replaces all occurrences of the specified word with a Hugo definition shortcode. Fetches Wikipedia summary and creates definition file.",
           inputSchema: {
             type: "object",
-            properties: {},
+            properties: {
+              word: {
+                type: "string",
+                description: "The word to create a definition for and replace in the document",
+              },
+              filePath: {
+                type: "string",
+                description: "Absolute path to the Markdown file to modify",
+              },
+            },
+            required: ["word", "filePath"],
           },
         },
         {
@@ -174,39 +184,47 @@ export async function activate(context: vscode.ExtensionContext) {
         }
 
         case "insert_definition_shortcode": {
-          const editor = vscode.window.activeTextEditor;
-          if (!editor) {
-            return {
-              content: [
-                {
-                  type: "text",
-                  text: JSON.stringify({ error: "No active text editor" }),
-                },
-              ],
-              isError: true,
-            };
-          }
-          if (editor.document.languageId !== "markdown") {
+          const word = request.params.arguments?.word as string;
+          const filePath = request.params.arguments?.filePath as string;
+          
+          if (!word || !filePath) {
             return {
               content: [
                 {
                   type: "text",
                   text: JSON.stringify({ 
-                    error: "Definition shortcode can only be inserted in Markdown files" 
+                    error: "Both 'word' and 'filePath' parameters are required" 
                   }),
                 },
               ],
               isError: true,
             };
           }
-          await vscode.commands.executeCommand("ixdar-vs.insertDefinitionShortcode");
+          
+          const result = await insertDefinitionForWord(word, filePath);
+          
+          if (!result.success) {
+            return {
+              content: [
+                {
+                  type: "text",
+                  text: JSON.stringify({ 
+                    error: result.message 
+                  }),
+                },
+              ],
+              isError: true,
+            };
+          }
+          
           return {
             content: [
               {
                 type: "text",
                 text: JSON.stringify({ 
                   success: true, 
-                  message: "Definition shortcode inserted" 
+                  message: result.message,
+                  replacements: result.replacements
                 }),
               },
             ],
