@@ -1,71 +1,116 @@
-# ixdar-vs README
+# ixdar-vs
 
-This is the README for your extension "ixdar-vs". After writing up a brief description, we recommend including the following sections.
+IDE tooling for the ixdar project with Model Context Protocol (MCP) support.
 
 ## Features
 
-Describe specific features of your extension including screenshots of your extension in action. Image paths are relative to this README file.
+This VS Code extension provides developer tools and utilities with full MCP server integration, allowing AI assistants like Claude to interact with your VS Code workspace.
 
-For example if there is an image subfolder under your extension project workspace:
+### Commands
 
-\!\[feature X\]\(images/feature-x.png\)
+#### 1. **IX: zBreakPoint** (`Ctrl+Shift+B`)
+Insert a conditional z_breakpoint snippet at the current cursor position. This creates a conditional block with a breakpoint, useful for debugging shader code or other conditional debugging scenarios.
 
-> Tip: Many popular extensions utilize animations. This is an excellent way to show off your extension! We recommend short, focused animations that are easy to follow.
+```glsl
+if(){
+    float z_breakPoint = 0;
+}
+```
+
+#### 2. **IX: Insert Definition Shortcode** (`Ctrl+Shift+D`)
+Available in Markdown files only. This command:
+- Takes the word at the cursor or selected text
+- Fetches a Wikipedia summary for that term
+- Creates a definition file in `web/static/definitions/`
+- Inserts a Hugo shortcode `{{< def "term" >}}` at the cursor position
+
+Perfect for creating rich, interactive documentation with automatic term definitions.
+
+### MCP Server Integration
+
+This extension exposes all its commands via the Model Context Protocol, enabling AI assistants to:
+- List available VS Code commands
+- Insert breakpoints programmatically
+- Create definition shortcodes from AI conversations
+- Execute any VS Code command remotely
+
+See [MCP-README.md](MCP-README.md) for detailed MCP server documentation and setup instructions.
 
 ## Requirements
 
-If you have any requirements or dependencies, add a section describing those and how to install and configure them.
+- VS Code 1.97.0 or higher
+- Node.js (for MCP server functionality)
 
 ## Extension Settings
 
-Include if your extension adds any VS Code settings through the `contributes.configuration` extension point.
-
-For example:
-
 This extension contributes the following settings:
 
-* `myExtension.enable`: Enable/disable this extension.
-* `myExtension.thing`: Set to `blah` to do something.
+* `ixdar-vs.mcp.enabled`: Enable/disable the MCP server (default: `true`)
+* `ixdar-vs.mcp.transport`: Transport type for MCP server - `stdio` or `http` (default: `stdio`)
+* `ixdar-vs.mcp.httpPort`: Port number for HTTP transport (default: `45555`)
+
+## MCP Tools Available
+
+When the MCP server is enabled, the following tools are exposed:
+
+1. **list_commands** - List all VS Code commands with a given prefix
+2. **insert_z_breakpoint** - Insert a z_breakpoint snippet at cursor
+3. **insert_definition_shortcode** - Insert a definition shortcode for Markdown
+4. **execute_vscode_command** - Execute any VS Code command by ID
+
+## Usage with Claude Desktop
+
+To use this extension with Claude Desktop:
+
+1. Install and activate the extension in VS Code
+2. Enable HTTP transport in settings:
+   - Open Settings (`Ctrl+,`)
+   - Search for "ixdar-vs"
+   - Set `MCP: Transport` to `http`
+3. Configure Claude Desktop (see [MCP-README.md](MCP-README.md) for details)
+4. Reload VS Code
+
+Claude will now be able to interact with your VS Code instance!
+
+## Development
+
+### Building
+
+```bash
+npm install
+npm run compile
+```
+
+### Testing
+
+Press `F5` in VS Code to launch the extension in debug mode.
+
+### Adding MCP Tools
+
+See [MCP-README.md](MCP-README.md) for instructions on adding new MCP tools.
 
 ## Known Issues
 
-Calling out known issues can help limit users opening duplicate issues against your extension.
+- MCP stdio transport requires the extension to run within VS Code context
+- Definition shortcode requires internet connection to fetch Wikipedia data
+- HTTP transport may require firewall permissions
 
 ## Release Notes
 
-Users appreciate release notes as you update your extension.
+### 0.0.1
 
-### 1.0.0
-
-Initial release of ...
-
-### 1.0.1
-
-Fixed issue #.
-
-### 1.1.0
-
-Added features X, Y, and Z.
+Initial release with:
+- z_breakpoint insertion command
+- Definition shortcode command for Markdown
+- Full MCP server integration with configurable transport
+- Support for both stdio and HTTP/SSE transports
 
 ---
 
-## Following extension guidelines
+## Links
 
-Ensure that you've read through the extensions guidelines and follow the best practices for creating your extension.
-
-* [Extension Guidelines](https://code.visualstudio.com/api/references/extension-guidelines)
-
-## Working with Markdown
-
-You can author your README using Visual Studio Code. Here are some useful editor keyboard shortcuts:
-
-* Split the editor (`Cmd+\` on macOS or `Ctrl+\` on Windows and Linux).
-* Toggle preview (`Shift+Cmd+V` on macOS or `Shift+Ctrl+V` on Windows and Linux).
-* Press `Ctrl+Space` (Windows, Linux, macOS) to see a list of Markdown snippets.
-
-## For more information
-
-* [Visual Studio Code's Markdown Support](http://code.visualstudio.com/docs/languages/markdown)
-* [Markdown Syntax Reference](https://help.github.com/articles/markdown-basics/)
+- [Model Context Protocol Documentation](https://modelcontextprotocol.io/)
+- [MCP Server Setup Guide](MCP-README.md)
+- [Extension Guidelines](https://code.visualstudio.com/api/references/extension-guidelines)
 
 **Enjoy!**

@@ -10,13 +10,39 @@
     "Other"
   ],
   "activationEvents": [
+    "onStartupFinished"
   ],
   "main": "./out/extension.js",
   "contributes": {
+    "configuration": {
+      "title": "ixdar-vs MCP Server",
+      "properties": {
+        "ixdar-vs.mcp.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable the MCP server for this extension"
+        },
+        "ixdar-vs.mcp.transport": {
+          "type": "string",
+          "enum": ["stdio", "http"],
+          "default": "stdio",
+          "description": "Transport type for the MCP server (stdio or http)"
+        },
+        "ixdar-vs.mcp.httpPort": {
+          "type": "number",
+          "default": 45555,
+          "description": "Port number for HTTP transport (only used when transport is 'http')"
+        }
+      }
+    },
     "commands": [
       {
         "command": "ixdar-vs.onZBreakPoint",
         "title": "IX: zBreakPoint"
+      },
+      {
+        "command": "ixdar-vs.insertDefinitionShortcode",
+        "title": "IX: Insert Definition Shortcode"
       }
     ],
     "keybindings": [
@@ -24,6 +50,11 @@
         "command": "ixdar-vs.onZBreakPoint",
         "key": "ctrl+shift+b",
         "when": "editorTextFocus"
+      },
+      {
+        "command": "ixdar-vs.insertDefinitionShortcode",
+        "key": "ctrl+shift+d",
+        "when": "editorTextFocus && editorLangId == markdown"
       }
     ]
   },
@@ -33,7 +64,8 @@
     "watch": "tsc -watch -p ./",
     "pretest": "npm run compile && npm run lint",
     "lint": "eslint src",
-    "test": "vscode-test"
+    "test": "vscode-test",
+    "test-mcp": "node test-mcp-server.js"
   },
   "devDependencies": {
     "@types/vscode": "^1.97.0",
@@ -45,5 +77,9 @@
     "typescript": "^5.7.3",
     "@vscode/test-cli": "^0.0.10",
     "@vscode/test-electron": "^2.4.1"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.4",
+    "zod": "^3.24.1"
   }
 }
