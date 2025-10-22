@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import type { CommandModule, McpResult } from '../types/command';
+import { runWithAvailabilityGuard } from '../utils/availability';
 
 async function listEssayImagesForDocument(document: vscode.TextDocument): Promise<string[] | undefined> {
 	const workspaceFolder = vscode.workspace.getWorkspaceFolder(document.uri);
@@ -20,6 +21,11 @@ async function listEssayImagesForDocument(document: vscode.TextDocument): Promis
 }
 
 const command: CommandModule = {
+	meta: {
+		category: 'repo',
+		allowedRepoNames: ['KriegEterna'],
+		languages: ['markdown'],
+	},
 	vscode: {
 		id: 'ixdar-vs.insertEssayImageShortcode',
 		register: (context: vscode.ExtensionContext) => {
@@ -28,26 +34,29 @@ const command: CommandModule = {
 				if (!editor) {
 					return;
 				}
-				const document = editor.document;
-				if (document.languageId !== 'markdown' && !document.fileName.toLowerCase().endsWith('.md')) {
-					vscode.window.showWarningMessage('Essay image insertion is only available in Markdown files.');
-					return;
-				}
-				const images = await listEssayImagesForDocument(document);
-				if (!images) {
-					vscode.window.showErrorMessage('Unable to resolve workspace folder to locate essay images.');
-					return;
-				}
-				if (images.length === 0) {
-					vscode.window.showWarningMessage('No images found in web/static/essay/essay-description-image');
-					return;
-				}
-				const selected = await vscode.window.showQuickPick(images, { placeHolder: 'Select an essay image to insert' });
-				if (!selected) {
-					return;
-				}
-				const snippet = new vscode.SnippetString(`{{<essay-image file="${selected}" caption="$1">}}`);
-				await editor.insertSnippet(snippet, editor.selection.active);
+				await runWithAvailabilityGuard(
+					command.meta,
+					editor.document.uri,
+					(msg) => vscode.window.showWarningMessage(msg),
+					async () => {
+						const document = editor.document;
+						const images = await listEssayImagesForDocument(document);
+						if (!images) {
+							vscode.window.showErrorMessage('Unable to resolve workspace folder to locate essay images.');
+							return;
+						}
+						if (images.length === 0) {
+							vscode.window.showWarningMessage('No images found in web/static/essay/essay-description-image');
+							return;
+						}
+						const selected = await vscode.window.showQuickPick(images, { placeHolder: 'Select an essay image to insert' });
+						if (!selected) {
+							return;
+						}
+						const snippet = new vscode.SnippetString(`{{<essay-image file="${selected}" caption="$1">}}`);
+						await editor.insertSnippet(snippet, editor.selection.active);
+					}
+				);
 			});
 			context.subscriptions.push(disposable);
 		},

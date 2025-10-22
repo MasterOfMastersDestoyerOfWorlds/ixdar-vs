@@ -5,6 +5,9 @@ import * as http from "http";
 import * as fs from "fs";
 import * as path from "path";
 import type { CommandModule } from "./types/command";
+import { getActiveRepoName, getActiveLanguageId, isAvailable, isAvailableForListing } from './utils/availability';
+
+// availability helpers are provided by utils/availability
 
 // This method is called when your extension is activated
 // Your extension is activated the very first time the command is executed
@@ -25,6 +28,7 @@ export async function activate(context: vscode.ExtensionContext) {
           // eslint-disable-next-line @typescript-eslint/no-var-requires
           const loaded = require(modPath);
           const cmd: CommandModule | undefined = loaded?.default;
+          console.log("cmd", cmd);
           if (cmd && cmd.vscode && cmd.mcp) {
             commandModules.push(cmd);
             cmd.vscode.register(context);
@@ -76,8 +80,21 @@ export async function activate(context: vscode.ExtensionContext) {
   for (const cmd of commandModules) {
     dynamicTools.set(cmd.mcp.tool.name, cmd);
   }
+  
+  const initialRepoName = await getActiveRepoName();
+  const initialLangId = getActiveLanguageId();
+  const initialDynamic = Array.from(dynamicTools.values())
+    .filter((m) => isAvailableForListing(m.meta, initialRepoName, initialLangId))
+    .map((m) => m.mcp.tool);
+  console.log("dynamic2", initialDynamic);
 
   mcp.setRequestHandler(sdkTypes.ListToolsRequestSchema, async () => {
+    const repoName = await getActiveRepoName();
+    const langId = getActiveLanguageId();
+    const dynamic = Array.from(dynamicTools.values())
+      .filter((m) => isAvailableForListing(m.meta, repoName, langId))
+      .map((m) => m.mcp.tool);
+    console.log("dynamic", dynamic);
     const tools = [
       {
         name: "list_commands",
@@ -105,7 +122,7 @@ export async function activate(context: vscode.ExtensionContext) {
           required: ["command"],
         },
       },
-      ...Array.from(dynamicTools.values()).map((m) => m.mcp.tool),
+      ...dynamic,
     ];
     return { tools };
   });
@@ -162,6 +179,14 @@ export async function activate(context: vscode.ExtensionContext) {
           if (!mod) {
             return {
               content: [ { type: "text", text: JSON.stringify({ error: `Unknown tool: ${toolName}` }) } ],
+              isError: true,
+            };
+          }
+          const repoName = await getActiveRepoName();
+          const langId = getActiveLanguageId();
+          if (!isAvailable(mod.meta, repoName, langId)) {
+            return {
+              content: [ { type: "text", text: JSON.stringify({ error: "Tool not available in this repository or language" }) } ],
               isError: true,
             };
           }

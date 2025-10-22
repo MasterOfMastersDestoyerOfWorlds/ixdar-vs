@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import * as https from 'https';
 import type { CommandModule, McpResult } from '../types/command';
+import { runWithAvailabilityGuard } from '../utils/availability';
 
 function slugifyForFile(term: string): string {
 	const lower = term.trim().toLowerCase();
@@ -163,6 +164,11 @@ export async function insertDefinitionForWord(word: string, filePath: string): P
 }
 
 const command: CommandModule = {
+	meta: {
+		category: 'repo',
+		allowedRepoNames: ['KriegEterna'],
+		languages: ['markdown'],
+	},
 	vscode: {
 		id: 'ixdar-vs.insertDefinitionShortcode',
 		register: (context: vscode.ExtensionContext) => {
@@ -171,25 +177,28 @@ const command: CommandModule = {
 				if (!editor) {
 					return;
 				}
-				const document = editor.document;
-				if (document.languageId !== 'markdown' && !document.fileName.toLowerCase().endsWith('.md')) {
-					vscode.window.showWarningMessage('Definition insertion is only available in Markdown files.');
-					return;
-				}
-				const found = getWordAtCursor(editor);
-				if (!found || !found.word || found.word.trim().length === 0) {
-					vscode.window.showInformationMessage('No word found at cursor.');
-					return;
-				}
-				const term = found.word.trim();
-				const fileUri = await definitionFileUriForDocument(term, document);
-				if (!fileUri) {
-					vscode.window.showErrorMessage('Unable to resolve workspace folder for definitions.');
-					return;
-				}
-				await ensureDefinitionFile(term, fileUri);
-				await replaceWithShortcode(editor, found.range, term);
-				vscode.window.showInformationMessage(`Inserted definition for "${term}"`);
+				await runWithAvailabilityGuard(
+					command.meta,
+					editor.document.uri,
+					(msg) => vscode.window.showWarningMessage(msg),
+					async () => {
+						const document = editor.document;
+						const found = getWordAtCursor(editor);
+						if (!found || !found.word || found.word.trim().length === 0) {
+							vscode.window.showInformationMessage('No word found at cursor.');
+							return;
+						}
+						const term = found.word.trim();
+						const fileUri = await definitionFileUriForDocument(term, document);
+						if (!fileUri) {
+							vscode.window.showErrorMessage('Unable to resolve workspace folder for definitions.');
+							return;
+						}
+						await ensureDefinitionFile(term, fileUri);
+						await replaceWithShortcode(editor, found.range, term);
+						vscode.window.showInformationMessage(`Inserted definition for "${term}"`);
+					}
+				);
 			});
 
 			context.subscriptions.push(disposable);

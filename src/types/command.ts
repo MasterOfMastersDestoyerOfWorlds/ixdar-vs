@@ -9,7 +9,14 @@ export interface McpResult {
 	isError?: boolean;
 }
 
+export interface CommandAvailabilityMeta {
+	category: 'general' | 'repo';
+	allowedRepoNames?: string[]; // case-insensitive repo names
+	languages?: string[]; // VS Code language IDs
+}
+
 export interface CommandModule {
+	meta: CommandAvailabilityMeta;
 	vscode: {
 		id: string;
 		register: (context: import('vscode').ExtensionContext) => void;
