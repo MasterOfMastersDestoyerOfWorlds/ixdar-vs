@@ -1,8 +1,10 @@
 // The module 'vscode' contains the VS Code extensibility API
 // Import the module and reference it with the alias vscode in your code below
 import * as vscode from "vscode";
-import { registerInsertDefinitionCommand, insertDefinitionForWord } from "./commands/insertDefinition";
 import * as http from "http";
+import * as fs from "fs";
+import * as path from "path";
+import type { CommandModule } from "./types/command";
 
 // This method is called when your extension is activated
 // Your extension is activated the very first time the command is executed
@@ -11,36 +13,34 @@ export async function activate(context: vscode.ExtensionContext) {
   // This line of code will only be executed once when your extension is activated
   console.log('Congratulations, your extension "ixdar-vs" mcp is now active!');
 
-  // The command has been defined in the package.json file
-  // Now provide the implementation of the command with registerCommand
-  // The commandId parameter must match the command field in package.json
-  let disposable = vscode.commands.registerCommand(
-    "ixdar-vs.onZBreakPoint",
-    () => {
-      const editor = vscode.window.activeTextEditor;
-      if (editor === undefined) {
-        return;
+  // Dynamically discover and register all command modules (single source of truth)
+  const commandModules: CommandModule[] = [];
+  try {
+    const commandsDir = path.join(__dirname, "commands");
+    if (fs.existsSync(commandsDir)) {
+      const files = fs.readdirSync(commandsDir).filter((f) => f.endsWith(".js") && !f.endsWith(".js.map"));
+      for (const file of files) {
+        try {
+          const modPath = path.join(commandsDir, file);
+          // eslint-disable-next-line @typescript-eslint/no-var-requires
+          const loaded = require(modPath);
+          const cmd: CommandModule | undefined = loaded?.default;
+          if (cmd && cmd.vscode && cmd.mcp) {
+            commandModules.push(cmd);
+            cmd.vscode.register(context);
+          } else {
+            console.warn(`File ${file} did not export a CommandModule as default.`);
+          }
+        } catch (e) {
+          console.error("Failed to load command module", file, e);
+        }
       }
-      const position = editor.selection.active;
-      const snippet = new vscode.SnippetString();
-      snippet.appendText("if(");
-      snippet.appendTabstop();
-      snippet.appendText(`){\n` + `\tfloat z_breakPoint = 0;\n` + `}`);
-      editor.insertSnippet(snippet, position);
-      const breakline = editor.document.lineAt(position.line + 1);
-      const breakpoint = new vscode.SourceBreakpoint(
-        new vscode.Location(editor.document.uri, breakline.range)
-      );
-      // Add the breakpoint
-      vscode.debug.addBreakpoints([breakpoint]);
-      vscode.window.showInformationMessage("Breakpoint Set");
+    } else {
+      console.warn("Commands directory not found:", commandsDir);
     }
-  );
-
-  context.subscriptions.push(disposable);
-
-  // Register: Insert Definition Shortcode for Markdown
-  registerInsertDefinitionCommand(context);
+  } catch (e) {
+    console.error("Error discovering command modules:", e);
+  }
 
   // Check if MCP server is enabled
   const config = vscode.workspace.getConfiguration('ixdar-vs');
@@ -72,73 +72,42 @@ export async function activate(context: vscode.ExtensionContext) {
     }
   );
 
-  // Tool: list_commands - List all VS Code commands with a given prefix
+  const dynamicTools = new Map<string, CommandModule>();
+  for (const cmd of commandModules) {
+    dynamicTools.set(cmd.mcp.tool.name, cmd);
+  }
+
   mcp.setRequestHandler(sdkTypes.ListToolsRequestSchema, async () => {
-    return {
-      tools: [
-        {
-          name: "list_commands",
-          description: "List VS Code commands starting with a prefix (default: ixdar-vs.)",
-          inputSchema: {
-            type: "object",
-            properties: {
-              prefix: {
-                type: "string",
-                description: "Command prefix to filter by",
-                default: "ixdar-vs.",
-              },
+    const tools = [
+      {
+        name: "list_commands",
+        description: "List VS Code commands starting with a prefix (default: ixdar-vs.)",
+        inputSchema: {
+          type: "object",
+          properties: {
+            prefix: {
+              type: "string",
+              description: "Command prefix to filter by",
+              default: "ixdar-vs.",
             },
           },
         },
-        {
-          name: "insert_z_breakpoint",
-          description: "Insert a z_breakpoint snippet at the current cursor position. Creates a conditional block with a breakpoint.",
-          inputSchema: {
-            type: "object",
-            properties: {},
+      },
+      {
+        name: "execute_vscode_command",
+        description: "Execute any VS Code command by its ID. Use list_commands to see available commands.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            command: { type: "string", description: "The VS Code command ID to execute" },
+            args: { type: "array", description: "Optional arguments to pass to the command", items: { type: "string" } },
           },
+          required: ["command"],
         },
-        {
-          name: "insert_definition_shortcode",
-          description: "Insert a definition shortcode in a Markdown file. Replaces all occurrences of the specified word with a Hugo definition shortcode. Fetches Wikipedia summary and creates definition file.",
-          inputSchema: {
-            type: "object",
-            properties: {
-              word: {
-                type: "string",
-                description: "The word to create a definition for and replace in the document",
-              },
-              filePath: {
-                type: "string",
-                description: "Absolute path to the Markdown file to modify",
-              },
-            },
-            required: ["word", "filePath"],
-          },
-        },
-        {
-          name: "execute_vscode_command",
-          description: "Execute any VS Code command by its ID. Use list_commands to see available commands.",
-          inputSchema: {
-            type: "object",
-            properties: {
-              command: {
-                type: "string",
-                description: "The VS Code command ID to execute",
-              },
-              args: {
-                type: "array",
-                description: "Optional arguments to pass to the command",
-                items: {
-                  type: "string",
-                },
-              },
-            },
-            required: ["command"],
-          },
-        },
-      ],
-    };
+      },
+      ...Array.from(dynamicTools.values()).map((m) => m.mcp.tool),
+    ];
+    return { tools };
   });
 
   // Tool execution handler
@@ -158,79 +127,7 @@ export async function activate(context: vscode.ExtensionContext) {
             ],
           };
         }
-
-        case "insert_z_breakpoint": {
-          const editor = vscode.window.activeTextEditor;
-          if (!editor) {
-            return {
-              content: [
-                {
-                  type: "text",
-                  text: JSON.stringify({ error: "No active text editor" }),
-                },
-              ],
-              isError: true,
-            };
-          }
-          await vscode.commands.executeCommand("ixdar-vs.onZBreakPoint");
-          return {
-            content: [
-              {
-                type: "text",
-                text: JSON.stringify({ success: true, message: "Z breakpoint inserted" }),
-              },
-            ],
-          };
-        }
-
-        case "insert_definition_shortcode": {
-          const word = request.params.arguments?.word as string;
-          const filePath = request.params.arguments?.filePath as string;
-          
-          if (!word || !filePath) {
-            return {
-              content: [
-                {
-                  type: "text",
-                  text: JSON.stringify({ 
-                    error: "Both 'word' and 'filePath' parameters are required" 
-                  }),
-                },
-              ],
-              isError: true,
-            };
-          }
-          
-          const result = await insertDefinitionForWord(word, filePath);
-          
-          if (!result.success) {
-            return {
-              content: [
-                {
-                  type: "text",
-                  text: JSON.stringify({ 
-                    error: result.message 
-                  }),
-                },
-              ],
-              isError: true,
-            };
-          }
-          
-          return {
-            content: [
-              {
-                type: "text",
-                text: JSON.stringify({ 
-                  success: true, 
-                  message: result.message,
-                  replacements: result.replacements
-                }),
-              },
-            ],
-          };
-        }
-
+        
         case "execute_vscode_command": {
           const commandId = request.params.arguments?.command as string;
           const args = (request.params.arguments?.args as any[]) ?? [];
@@ -258,17 +155,18 @@ export async function activate(context: vscode.ExtensionContext) {
             ],
           };
         }
-
-        default:
-          return {
-            content: [
-              {
-                type: "text",
-                text: JSON.stringify({ error: `Unknown tool: ${request.params.name}` }),
-              },
-            ],
-            isError: true,
-          };
+        
+        default: {
+          const toolName = request.params.name as string;
+          const mod = dynamicTools.get(toolName);
+          if (!mod) {
+            return {
+              content: [ { type: "text", text: JSON.stringify({ error: `Unknown tool: ${toolName}` }) } ],
+              isError: true,
+            };
+          }
+          return await mod.mcp.call(request.params.arguments ?? {});
+        }
       }
     } catch (error: any) {
       return {

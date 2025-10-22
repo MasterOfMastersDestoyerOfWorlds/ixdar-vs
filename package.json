@@ -43,6 +43,10 @@
       {
         "command": "ixdar-vs.insertDefinitionShortcode",
         "title": "IX: Insert Definition Shortcode"
+      },
+      {
+        "command": "ixdar-vs.insertEssayImageShortcode",
+        "title": "IX: Insert Essay Image Shortcode"
       }
     ],
     "keybindings": [
@@ -54,6 +58,11 @@
       {
         "command": "ixdar-vs.insertDefinitionShortcode",
         "key": "ctrl+shift+d",
+        "when": "editorTextFocus && editorLangId == markdown"
+      },
+      {
+        "command": "ixdar-vs.insertEssayImageShortcode",
+        "key": "ctrl+shift+i",
         "when": "editorTextFocus && editorLangId == markdown"
       }
     ]

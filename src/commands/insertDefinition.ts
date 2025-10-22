@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 import * as https from 'https';
+import type { CommandModule, McpResult } from '../types/command';
 
 function slugifyForFile(term: string): string {
 	const lower = term.trim().toLowerCase();
@@ -161,34 +162,70 @@ export async function insertDefinitionForWord(word: string, filePath: string): P
 	}
 }
 
-export function registerInsertDefinitionCommand(context: vscode.ExtensionContext) {
-	const disposable = vscode.commands.registerCommand('ixdar-vs.insertDefinitionShortcode', async () => {
-		const editor = vscode.window.activeTextEditor;
-		if (!editor) {
-			return;
-		}
-		const document = editor.document;
-		if (document.languageId !== 'markdown' && !document.fileName.toLowerCase().endsWith('.md')) {
-			vscode.window.showWarningMessage('Definition insertion is only available in Markdown files.');
-			return;
-		}
-		const found = getWordAtCursor(editor);
-		if (!found || !found.word || found.word.trim().length === 0) {
-			vscode.window.showInformationMessage('No word found at cursor.');
-			return;
-		}
-		const term = found.word.trim();
-		const fileUri = await definitionFileUriForDocument(term, document);
-		if (!fileUri) {
-			vscode.window.showErrorMessage('Unable to resolve workspace folder for definitions.');
-			return;
-		}
-		await ensureDefinitionFile(term, fileUri);
-		await replaceWithShortcode(editor, found.range, term);
-		vscode.window.showInformationMessage(`Inserted definition for "${term}"`);
-	});
+const command: CommandModule = {
+	vscode: {
+		id: 'ixdar-vs.insertDefinitionShortcode',
+		register: (context: vscode.ExtensionContext) => {
+			const disposable = vscode.commands.registerCommand('ixdar-vs.insertDefinitionShortcode', async () => {
+				const editor = vscode.window.activeTextEditor;
+				if (!editor) {
+					return;
+				}
+				const document = editor.document;
+				if (document.languageId !== 'markdown' && !document.fileName.toLowerCase().endsWith('.md')) {
+					vscode.window.showWarningMessage('Definition insertion is only available in Markdown files.');
+					return;
+				}
+				const found = getWordAtCursor(editor);
+				if (!found || !found.word || found.word.trim().length === 0) {
+					vscode.window.showInformationMessage('No word found at cursor.');
+					return;
+				}
+				const term = found.word.trim();
+				const fileUri = await definitionFileUriForDocument(term, document);
+				if (!fileUri) {
+					vscode.window.showErrorMessage('Unable to resolve workspace folder for definitions.');
+					return;
+				}
+				await ensureDefinitionFile(term, fileUri);
+				await replaceWithShortcode(editor, found.range, term);
+				vscode.window.showInformationMessage(`Inserted definition for "${term}"`);
+			});
 
-	context.subscriptions.push(disposable);
-}
+			context.subscriptions.push(disposable);
+		},
+	},
+	mcp: {
+		tool: {
+			name: 'insert_definition_shortcode',
+			description: 'Insert a definition shortcode in a Markdown file. Replaces all occurrences of the specified word with a Hugo definition shortcode. Fetches Wikipedia summary and creates definition file.',
+			inputSchema: {
+				type: 'object',
+				properties: {
+					word: { type: 'string', description: 'The word to create a definition for and replace in the document' },
+					filePath: { type: 'string', description: 'Absolute path to the Markdown file to modify' },
+				},
+				required: ['word', 'filePath'],
+			},
+		},
+		call: async (args: any): Promise<McpResult> => {
+			const word = args?.word as string;
+			const filePath = args?.filePath as string;
+			if (!word || !filePath) {
+				return {
+					content: [{ type: 'text', text: JSON.stringify({ error: "Both 'word' and 'filePath' parameters are required" }) }],
+					isError: true,
+				};
+			}
+			const result = await insertDefinitionForWord(word, filePath);
+			if (!result.success) {
+				return { content: [{ type: 'text', text: JSON.stringify({ error: result.message }) }], isError: true };
+			}
+			return {
+				content: [{ type: 'text', text: JSON.stringify({ success: true, message: result.message, replacements: result.replacements }) }],
+			};
+		},
+	},
+};
 
-
+export default command;
