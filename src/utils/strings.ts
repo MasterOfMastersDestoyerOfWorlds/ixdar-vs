@@ -83,3 +83,7 @@ export function splitByCapitals(str: string): string[] {
 export function extensionName(): string {
     return 'ixdar-vs';
 }
+
+export function extensionCommandName( commandName: string ): string {
+    return `${extensionName()}.${commandName}`;
+}

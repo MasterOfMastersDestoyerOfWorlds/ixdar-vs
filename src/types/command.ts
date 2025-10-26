@@ -48,7 +48,7 @@ export class CommandModuleImpl implements CommandModule {
   constructor(
     repoName: string | undefined,
     commandName: string,
-    languages: string[],
+    languages: string[] | undefined,
     commandFunc: () => Promise<void> | void,
 	mcpFunc: (args: any) => Promise<McpResult>,
     description: string,
@@ -57,7 +57,7 @@ export class CommandModuleImpl implements CommandModule {
     this.meta = {
       category: repoName ? "repo" : "general",
       allowedRepoNames: repoName ? [repoName] : [],
-      languages: languages,
+      languages: languages ?? undefined,
     };
     const vscodeId: string = strings.extensionName() + "." + commandName;
     this.vscodeCommand = {

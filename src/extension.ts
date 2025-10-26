@@ -31,7 +31,16 @@ export async function activate(context: vscode.ExtensionContext) {
           console.log("cmd", cmd);
           if (cmd && cmd.vscodeCommand && cmd.mcp) {
             commandModules.push(cmd);
-            cmd.vscodeCommand.register(context);
+            try {
+              cmd.vscodeCommand.register(context);
+            } catch (error: any) {
+              // Command might already be registered (e.g., during extension reload)
+              if (error.message && error.message.includes('already exists')) {
+                console.warn(`Command ${cmd.vscodeCommand.id} already exists, skipping registration.`);
+              } else {
+                throw error;
+              }
+            }
           } else {
             console.warn(`File ${file} did not export a CommandModule as default.`);
           }

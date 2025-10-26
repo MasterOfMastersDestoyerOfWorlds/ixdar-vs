@@ -1,6 +1,8 @@
 import * as vscode from "vscode";
 import { CommandModuleImpl, type CommandModule, type McpResult } from "../types/command";
 import { runWithAvailabilityGuard } from "../utils/availability";
+import * as strings from "../utils/strings";
+import * as mcp from "../utils/mcp";
 
 const commandName = "onZBreakPoint";
 const languages = ["c", "cpp", "java", "csharp"];
@@ -24,22 +26,7 @@ const commandFunc = async () => {
   vscode.window.showInformationMessage("Breakpoint Set");
 };
 
-const mcpFunc = async (args: any): Promise<McpResult> => {
-  const word = args?.word as string;
-  const editor = vscode.window.activeTextEditor;
-  await vscode.commands.executeCommand("ixdar-vs.onZBreakPoint");
-  return {
-    content: [
-      {
-        type: "text",
-        text: JSON.stringify({
-          success: true,
-          message: "Z breakpoint inserted",
-        }),
-      },
-    ],
-  };
-};
+const mcpFunc = mcp.executeCommand(commandName, "Z breakpoint inserted");
 
 const description = "Insert a z_breakpoint snippet at the current cursor position. Creates a conditional block with a breakpoint."
 const inputSchema = {
