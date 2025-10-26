@@ -25,22 +25,25 @@ export async function activate(context: vscode.ExtensionContext) {
       for (const file of files) {
         try {
           const modPath = path.join(commandsDir, file);
+          
+          // Clear require cache to allow hot-reloading during development
+          delete require.cache[require.resolve(modPath)];
+          
           // eslint-disable-next-line @typescript-eslint/no-var-requires
           const loaded = require(modPath);
           const cmd: CommandModule | undefined = loaded?.default;
           console.log("cmd", cmd);
           if (cmd && cmd.vscodeCommand && cmd.mcp) {
-            commandModules.push(cmd);
-            try {
-              cmd.vscodeCommand.register(context);
-            } catch (error: any) {
-              // Command might already be registered (e.g., during extension reload)
-              if (error.message && error.message.includes('already exists')) {
-                console.warn(`Command ${cmd.vscodeCommand.id} already exists, skipping registration.`);
-              } else {
-                throw error;
-              }
+            // Check if command already exists
+            const existingCommands = await vscode.commands.getCommands(true);
+            if (existingCommands.includes(cmd.vscodeCommand.id)) {
+              console.warn(`Command ${cmd.vscodeCommand.id} already registered, skipping.`);
+              commandModules.push(cmd); // Still add to commandModules for MCP
+              continue;
             }
+            
+            commandModules.push(cmd);
+            cmd.vscodeCommand.register(context);
           } else {
             console.warn(`File ${file} did not export a CommandModule as default.`);
           }

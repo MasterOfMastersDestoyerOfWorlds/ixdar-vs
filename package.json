@@ -51,6 +51,10 @@
       {
         "command": "ixdar-vs.insertEssayImageShortcode",
         "title": "IX: Insert Essay Image Shortcode"
+      },
+      {
+        "command": "ixdar-vs.newIxdarCommand",
+        "title": "IX: New Ixdar Command"
       }
     ],
     "keybindings": [
