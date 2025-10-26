@@ -82,7 +82,6 @@ export async function runWithAvailabilityGuard(
 			showWarning(`This command is only available for languages: ${meta.languages.join(', ')}`);
 			return;
 		}
-		// Fallback generic message
 		showWarning('This command is not available in the current context.');
 		return;
 	}

@@ -1,0 +1,1 @@
+This is my code built for my comercial purposes, it may not be copied transfered or otherwise distributed while I am alive. Copyright 2025.

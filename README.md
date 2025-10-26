@@ -34,7 +34,6 @@ This extension exposes all its commands via the Model Context Protocol, enabling
 - Create definition shortcodes from AI conversations
 - Execute any VS Code command remotely
 
-See [MCP-README.md](MCP-README.md) for detailed MCP server documentation and setup instructions.
 
 ## Requirements
 
@@ -58,20 +57,6 @@ When the MCP server is enabled, the following tools are exposed:
 3. **insert_definition_shortcode** - Insert a definition shortcode for Markdown
 4. **execute_vscode_command** - Execute any VS Code command by ID
 
-## Usage with Claude Desktop
-
-To use this extension with Claude Desktop:
-
-1. Install and activate the extension in VS Code
-2. Enable HTTP transport in settings:
-   - Open Settings (`Ctrl+,`)
-   - Search for "ixdar-vs"
-   - Set `MCP: Transport` to `http`
-3. Configure Claude Desktop (see [MCP-README.md](MCP-README.md) for details)
-4. Reload VS Code
-
-Claude will now be able to interact with your VS Code instance!
-
 ## Development
 
 ### Building
@@ -85,15 +70,6 @@ npm run compile
 
 Press `F5` in VS Code to launch the extension in debug mode.
 
-### Adding MCP Tools
-
-See [MCP-README.md](MCP-README.md) for instructions on adding new MCP tools.
-
-## Known Issues
-
-- MCP stdio transport requires the extension to run within VS Code context
-- Definition shortcode requires internet connection to fetch Wikipedia data
-- HTTP transport may require firewall permissions
 
 ## Release Notes
 

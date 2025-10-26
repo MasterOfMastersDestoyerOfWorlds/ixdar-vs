@@ -29,9 +29,9 @@ export async function activate(context: vscode.ExtensionContext) {
           const loaded = require(modPath);
           const cmd: CommandModule | undefined = loaded?.default;
           console.log("cmd", cmd);
-          if (cmd && cmd.vscode && cmd.mcp) {
+          if (cmd && cmd.vscodeCommand && cmd.mcp) {
             commandModules.push(cmd);
-            cmd.vscode.register(context);
+            cmd.vscodeCommand.register(context);
           } else {
             console.warn(`File ${file} did not export a CommandModule as default.`);
           }
@@ -293,5 +293,4 @@ export async function activate(context: vscode.ExtensionContext) {
   });
 }
 
-// This method is called when your extension is deactivated
 export function deactivate() {}

@@ -1,21 +1,18 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 import * as https from 'https';
-import type { CommandModule, McpResult } from '../types/command';
-import { runWithAvailabilityGuard } from '../utils/availability';
+import { CommandModule, McpResult, CommandModuleImpl } from '../types/command';
+import * as strings from '../utils/strings';
 
-function slugifyForFile(term: string): string {
-	const lower = term.trim().toLowerCase();
-	const dashed = lower.replace(/[^a-z0-9]+/g, '-');
-	return dashed.replace(/^-+|-+$/g, '');
-}
+
+
 
 async function definitionFileUriForDocument(term: string, document: vscode.TextDocument): Promise<vscode.Uri | undefined> {
 	const workspaceFolder = vscode.workspace.getWorkspaceFolder(document.uri);
 	if (!workspaceFolder) {
 		return undefined;
 	}
-	const slug = slugifyForFile(term);
+	const slug = strings.toDashedCase(term);
 	const defsDir = vscode.Uri.joinPath(workspaceFolder.uri, 'web', 'static', 'definitions');
 	const fileUri = vscode.Uri.joinPath(defsDir, `${slug}.md`);
 	return fileUri;
@@ -126,26 +123,18 @@ export async function insertDefinitionForWord(word: string, filePath: string): P
 			return { success: false, message: `Failed to open file: ${filePath}` };
 		}
 		
-		// Check if it's a markdown file
-		if (document.languageId !== 'markdown' && !document.fileName.toLowerCase().endsWith('.md')) {
-			return { success: false, message: 'Definition insertion is only available in Markdown files.' };
-		}
-		
 		const term = word.trim();
 		if (!term) {
 			return { success: false, message: 'Word cannot be empty.' };
 		}
 		
-		// Get the definition file URI
 		const fileUri = await definitionFileUriForDocument(term, document);
 		if (!fileUri) {
 			return { success: false, message: 'Unable to resolve workspace folder for definitions.' };
 		}
 		
-		// Ensure definition file exists
 		await ensureDefinitionFile(term, fileUri);
 		
-		// Replace all occurrences
 		const replacements = await replaceAllOccurrencesInDocument(document, term);
 		
 		if (replacements === 0) {
@@ -163,78 +152,60 @@ export async function insertDefinitionForWord(word: string, filePath: string): P
 	}
 }
 
-const command: CommandModule = {
-	meta: {
-		category: 'repo',
-		allowedRepoNames: ['KriegEterna'],
-		languages: ['markdown'],
-	},
-	vscode: {
-		id: 'ixdar-vs.insertDefinitionShortcode',
-		register: (context: vscode.ExtensionContext) => {
-			const disposable = vscode.commands.registerCommand('ixdar-vs.insertDefinitionShortcode', async () => {
-				const editor = vscode.window.activeTextEditor;
-				if (!editor) {
-					return;
-				}
-				await runWithAvailabilityGuard(
-					command.meta,
-					editor.document.uri,
-					(msg) => vscode.window.showWarningMessage(msg),
-					async () => {
-						const document = editor.document;
-						const found = getWordAtCursor(editor);
-						if (!found || !found.word || found.word.trim().length === 0) {
-							vscode.window.showInformationMessage('No word found at cursor.');
-							return;
-						}
-						const term = found.word.trim();
-						const fileUri = await definitionFileUriForDocument(term, document);
-						if (!fileUri) {
-							vscode.window.showErrorMessage('Unable to resolve workspace folder for definitions.');
-							return;
-						}
-						await ensureDefinitionFile(term, fileUri);
-						await replaceWithShortcode(editor, found.range, term);
-						vscode.window.showInformationMessage(`Inserted definition for "${term}"`);
-					}
-				);
-			});
+const languages = ['markdown'];
+const repoName = 'KriegEterna';
+const commandName = 'insertDefinitionShortcode';
+const commandFunc = async () => {
+	const editor = vscode.window.activeTextEditor;
+	if (!editor) {
+		return;
+	}
+	const document = editor.document;
+	const found = getWordAtCursor(editor);
+	if (!found || !found.word || found.word.trim().length === 0) {
+		vscode.window.showInformationMessage('No word found at cursor.');
+		return;
+	}
+	const term = found.word.trim();
+	const fileUri = await definitionFileUriForDocument(term, document);
+	if (!fileUri) {
+		vscode.window.showErrorMessage('Unable to resolve workspace folder for definitions.');
+		return;
+	}
+	await ensureDefinitionFile(term, fileUri);
+	await replaceWithShortcode(editor, found.range, term);
+	vscode.window.showInformationMessage(`Inserted definition for "${term}"`);
+}
 
-			context.subscriptions.push(disposable);
-		},
+const mcpFunc = async (args: any): Promise<McpResult> => {			const word = args?.word as string;
+	const filePath = args?.filePath as string;
+	if (!word || !filePath) {
+		return {
+			content: [{ type: 'text', text: JSON.stringify({ error: "Both 'word' and 'filePath' parameters are required" }) }],
+			isError: true,
+		};
+	}
+	const result = await insertDefinitionForWord(word, filePath);
+	if (!result.success) {
+		return { content: [{ type: 'text', text: JSON.stringify({ error: result.message }) }], isError: true };
+	}
+	return {
+		content: [{ type: 'text', text: JSON.stringify({ success: true, message: result.message, replacements: result.replacements }) }],
+	};
+}
+
+const description = 'Insert a definition shortcode in a Markdown file. Replaces all occurrences of the specified word with a Hugo definition shortcode. Fetches Wikipedia summary and creates definition file.';
+
+
+const inputSchema = {
+	type: 'object',
+	properties: {
+		word: { type: 'string', description: 'The word to create a definition for and replace in the document' },
+		filePath: { type: 'string', description: 'Absolute path to the Markdown file to modify' },
 	},
-	mcp: {
-		tool: {
-			name: 'insert_definition_shortcode',
-			description: 'Insert a definition shortcode in a Markdown file. Replaces all occurrences of the specified word with a Hugo definition shortcode. Fetches Wikipedia summary and creates definition file.',
-			inputSchema: {
-				type: 'object',
-				properties: {
-					word: { type: 'string', description: 'The word to create a definition for and replace in the document' },
-					filePath: { type: 'string', description: 'Absolute path to the Markdown file to modify' },
-				},
-				required: ['word', 'filePath'],
-			},
-		},
-		call: async (args: any): Promise<McpResult> => {
-			const word = args?.word as string;
-			const filePath = args?.filePath as string;
-			if (!word || !filePath) {
-				return {
-					content: [{ type: 'text', text: JSON.stringify({ error: "Both 'word' and 'filePath' parameters are required" }) }],
-					isError: true,
-				};
-			}
-			const result = await insertDefinitionForWord(word, filePath);
-			if (!result.success) {
-				return { content: [{ type: 'text', text: JSON.stringify({ error: result.message }) }], isError: true };
-			}
-			return {
-				content: [{ type: 'text', text: JSON.stringify({ success: true, message: result.message, replacements: result.replacements }) }],
-			};
-		},
-	},
-};
+	required: ['word', 'filePath'],
+}
+
+const command: CommandModule = new CommandModuleImpl(repoName, commandName, languages, commandFunc, mcpFunc, description, inputSchema);
 
 export default command;
