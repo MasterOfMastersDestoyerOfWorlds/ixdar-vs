@@ -8,6 +8,7 @@ import * as strings from "@/utils/strings";
 import * as mcp from "@/utils/mcp";
 import * as parser from "@/utils/parser";
 import Parser from "tree-sitter";
+import { RegisterCommand } from "@/utils/commandRegistry";
 
 /**
  * removeAllComments: Remove all single-line comments from the current file using tree-sitter AST parsing.
@@ -161,5 +162,10 @@ const command: CommandModule = new CommandModuleImpl(
   description,
   inputSchema
 );
+
+@RegisterCommand
+class CommandExport {
+  static default = command;
+}
 
 export default command;

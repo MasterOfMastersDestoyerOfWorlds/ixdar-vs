@@ -4,6 +4,7 @@ import * as path from "path";
 import { CommandModuleImpl, type CommandModule, type McpResult } from "@/types/command";
 import * as strings from "@/utils/strings";
 import * as mcp from "@/utils/mcp";
+import { RegisterCommand } from "@/utils/commandRegistry";
 
 const commandName = "package";
 const languages = undefined;
@@ -110,5 +111,10 @@ const command: CommandModule = new CommandModuleImpl(
   description,
   inputSchema
 );
+
+@RegisterCommand
+class CommandExport {
+  static default = command;
+}
 
 export default command;

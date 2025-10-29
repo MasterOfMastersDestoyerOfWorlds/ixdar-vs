@@ -3,6 +3,7 @@ import * as path from 'path';
 import * as https from 'https';
 import { CommandModule, McpResult, CommandModuleImpl } from '@/types/command';
 import * as strings from '@/utils/strings';
+import { RegisterCommand } from '@/utils/commandRegistry';
 
 
 
@@ -207,5 +208,10 @@ const inputSchema = {
 }
 
 const command: CommandModule = new CommandModuleImpl(repoName, commandName, languages, commandFunc, mcpFunc, description, inputSchema);
+
+@RegisterCommand
+class CommandExport {
+  static default = command;
+}
 
 export default command;

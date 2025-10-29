@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import { CommandModuleImpl, type CommandModule, type McpResult } from '@/types/command';
 import { runWithAvailabilityGuard } from '@/utils/availability';
+import { RegisterCommand } from '@/utils/commandRegistry';
 
 async function listEssayImagesForDocument(document: vscode.TextDocument): Promise<string[] | undefined> {
 	const workspaceFolder = vscode.workspace.getWorkspaceFolder(document.uri);
@@ -86,5 +87,10 @@ const inputSchema = {
 };
 
 const command: CommandModule = new CommandModuleImpl(repoName, commandName, languages, commandFunc, mcpFunc, description, inputSchema);
+
+@RegisterCommand
+class CommandExport {
+  static default = command;
+}
 
 export default command;

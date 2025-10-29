@@ -3,6 +3,7 @@ import { CommandModuleImpl, type CommandModule, type McpResult } from "@/types/c
 import { runWithAvailabilityGuard } from "@/utils/availability";
 import * as strings from "@/utils/strings";
 import * as mcp from "@/utils/mcp";
+import { RegisterCommand } from "@/utils/commandRegistry";
 
 const commandName = "onZBreakPoint";
 const languages = ["c", "cpp", "java", "csharp"];
@@ -42,5 +43,10 @@ const command: CommandModule = new CommandModuleImpl(
   description,
   inputSchema
 );
+
+@RegisterCommand
+class CommandExport {
+  static default = command;
+}
 
 export default command;

@@ -2,8 +2,6 @@
 // Import the module and reference it with the alias vscode in your code below
 import * as vscode from "vscode";
 import * as http from "http";
-import * as fs from "fs";
-import * as path from "path";
 import type { CommandModule } from "@/types/command";
 import { getActiveRepoName, getActiveLanguageId, isAvailable, isAvailableForListing } from '@/utils/availability';
 import * as parser from '@/utils/parser';
@@ -24,46 +22,33 @@ export async function activate(context: vscode.ExtensionContext) {
   // This line of code will only be executed once when your extension is activated
   console.log('Congratulations, your extension "ixdar-vs" mcp is now active!');
 
-  // Dynamically discover and register all command modules (single source of truth)
-  const commandModules: CommandModule[] = [];
-  try {
-    const commandsDir = path.join(__dirname, "commands");
-    if (fs.existsSync(commandsDir)) {
-      const files = fs.readdirSync(commandsDir).filter((f) => f.endsWith(".js") && !f.endsWith(".js.map"));
-      for (const file of files) {
-        try {
-          const modPath = path.join(commandsDir, file);
-          
-          // Clear require cache to allow hot-reloading during development
-          delete require.cache[require.resolve(modPath)];
-          
-          // eslint-disable-next-line @typescript-eslint/no-var-requires
-          const loaded = require(modPath);
-          const cmd: CommandModule | undefined = loaded?.default;
-          console.log("cmd", cmd);
-          if (cmd && cmd.vscodeCommand && cmd.mcp) {
-            // Check if command already exists
-            const existingCommands = await vscode.commands.getCommands(true);
-            if (existingCommands.includes(cmd.vscodeCommand.id)) {
-              console.warn(`Command ${cmd.vscodeCommand.id} already registered, skipping.`);
-              commandModules.push(cmd); // Still add to commandModules for MCP
-              continue;
-            }
-            
-            commandModules.push(cmd);
-            cmd.vscodeCommand.register(context);
-          } else {
-            console.warn(`File ${file} did not export a CommandModule as default.`);
-          }
-        } catch (e) {
-          console.error("Failed to load command module", file, e);
+  // Import all commands (triggers @RegisterCommand decorators)
+  // and get the registry
+  const { CommandRegistry } = await import('./commands');
+  
+  // Get all registered commands from the registry
+  const commandModules = CommandRegistry.getInstance().getAll();
+  console.log(`Loaded ${commandModules.length} command modules from registry`);
+  
+  // Register all commands with VS Code
+  for (const cmd of commandModules) {
+    try {
+      if (cmd && cmd.vscodeCommand && cmd.mcp) {
+        // Check if command already exists
+        const existingCommands = await vscode.commands.getCommands(true);
+        if (existingCommands.includes(cmd.vscodeCommand.id)) {
+          console.warn(`Command ${cmd.vscodeCommand.id} already registered, skipping.`);
+          continue;
         }
+        
+        cmd.vscodeCommand.register(context);
+        console.log(`Registered command: ${cmd.vscodeCommand.id}`);
+      } else {
+        console.warn(`Command missing vscodeCommand or mcp properties:`, cmd);
       }
-    } else {
-      console.warn("Commands directory not found:", commandsDir);
+    } catch (e) {
+      console.error("Failed to register command", cmd?.vscodeCommand?.id, e);
     }
-  } catch (e) {
-    console.error("Error discovering command modules:", e);
   }
 
   // Register parse tree cache listeners

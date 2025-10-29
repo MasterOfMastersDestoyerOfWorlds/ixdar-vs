@@ -3,6 +3,7 @@ import { CommandModuleImpl, type CommandModule, type McpResult } from "@/types/c
 import { runWithAvailabilityGuard } from "@/utils/availability";
 import * as strings from "@/utils/strings";
 import * as mcp from "@/utils/mcp";
+import { RegisterCommand } from "@/utils/commandRegistry";
 
 const commandName = "newIxdarCommand";
 const languages = undefined;
@@ -37,6 +38,7 @@ import * as vscode from "vscode";
 import { CommandModuleImpl, type CommandModule, type McpResult } from "@/types/command";
 import * as strings from "@/utils/strings";
 import * as mcp from "@/utils/mcp";
+import { RegisterCommand } from "@/utils/commandRegistry";
 
 /**
  * ${newCommandName}: Describe what your command does here.
@@ -65,6 +67,11 @@ const command: CommandModule = new CommandModuleImpl(
   description,
   inputSchema
 );
+
+@RegisterCommand
+class CommandExport {
+  static default = command;
+}
 
 export default command;
 `;
@@ -100,5 +107,10 @@ const command: CommandModule = new CommandModuleImpl(
   description,
   inputSchema
 );
+
+@RegisterCommand
+class CommandExport {
+  static default = command;
+}
 
 export default command;

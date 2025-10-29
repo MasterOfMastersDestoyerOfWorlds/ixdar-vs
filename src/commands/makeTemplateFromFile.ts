@@ -1,8 +1,8 @@
-
 import * as vscode from "vscode";
 import { CommandModuleImpl, type CommandModule, type McpResult } from "@/types/command";
 import * as strings from "@/utils/strings";
 import * as mcp from "@/utils/mcp";
+import { RegisterCommand } from "@/utils/commandRegistry";
 
 /**
  * makeTemplateFromFile: Make a template function from a file by replacing target variables with case-specific template literals.
@@ -133,5 +133,10 @@ const command: CommandModule = new CommandModuleImpl(
   description,
   inputSchema
 );
+
+@RegisterCommand
+class CommandExport {
+  static default = command;
+}
 
 export default command;
