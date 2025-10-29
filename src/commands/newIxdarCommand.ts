@@ -1,8 +1,8 @@
 import * as vscode from "vscode";
-import { CommandModuleImpl, type CommandModule, type McpResult } from "../types/command";
-import { runWithAvailabilityGuard } from "../utils/availability";
-import * as strings from "../utils/strings";
-import * as mcp from "../utils/mcp";
+import { CommandModuleImpl, type CommandModule, type McpResult } from "@/types/command";
+import { runWithAvailabilityGuard } from "@/utils/availability";
+import * as strings from "@/utils/strings";
+import * as mcp from "@/utils/mcp";
 
 const commandName = "newIxdarCommand";
 const languages = undefined;
@@ -34,9 +34,9 @@ const commandFunc = async () => {
   // File template
   const template = `
 import * as vscode from "vscode";
-import { CommandModuleImpl, type CommandModule, type McpResult } from "../types/command";
-import * as strings from "../utils/strings";
-import * as mcp from "../utils/mcp";
+import { CommandModuleImpl, type CommandModule, type McpResult } from "@/types/command";
+import * as strings from "@/utils/strings";
+import * as mcp from "@/utils/mcp";
 
 /**
  * ${newCommandName}: Describe what your command does here.
@@ -45,14 +45,10 @@ const commandName = "${newCommandName}";
 const languages = undefined;
 const repoName = undefined;
 const commandFunc = async () => {
-  vscode.window.showInformationMessage("New command '${newCommandName}' executed.");
+
 };
 
-const mcpFunc = async (args: any): Promise<McpResult> => {
-  return {
-    content: [{ type: "text", text: JSON.stringify({ success: true, message: "Command '${newCommandName}' ran." }) }]
-  };
-};
+const mcpFunc = mcp.executeCommand(commandName, (args: any) => "Command ${newCommandName} created");
 
 const description = "Describe '${newCommandName}' here.";
 const inputSchema = {

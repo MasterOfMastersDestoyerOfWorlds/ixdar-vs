@@ -1,7 +1,7 @@
 {
   "name": "ixdar-vs",
   "displayName": "ixdar-vs",
-  "description": "ide tooling for ixdar]",
+  "description": "Higher level templating and diff automation",
   "version": "0.0.1",
   "repository": {
     "type": "git",
@@ -28,7 +28,10 @@
         },
         "ixdar-vs.mcp.transport": {
           "type": "string",
-          "enum": ["stdio", "http"],
+          "enum": [
+            "stdio",
+            "http"
+          ],
           "default": "stdio",
           "description": "Transport type for the MCP server (stdio or http)"
         },
@@ -55,6 +58,18 @@
       {
         "command": "ixdar-vs.newIxdarCommand",
         "title": "IX: New Ixdar Command"
+      },
+      {
+        "command": "ixdar-vs.package",
+        "title": "IX: Package and Install Extension"
+      },
+      {
+        "command": "ixdar-vs.removeAllComments",
+        "title": "IX: Remove All Single-Line Comments"
+      },
+      {
+        "command": "ixdar-vs.makeTemplateFromFile",
+        "title": "IX: Make Template From File"
       }
     ],
     "keybindings": [
@@ -77,26 +92,44 @@
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",
-    "compile": "tsc -p ./",
-    "watch": "tsc -watch -p ./",
+    "compile": "webpack --mode production",
+    "watch": "webpack --mode none --watch",
+    "package": "webpack --mode production",
     "pretest": "npm run compile && npm run lint",
     "lint": "eslint src",
-    "test": "vscode-test",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "test-vscode": "vscode-test",
     "test-mcp": "node test-mcp-server.js"
   },
   "devDependencies": {
-    "@types/vscode": "^1.97.0",
+    "@types/jest": "^29.5.0",
     "@types/mocha": "^10.0.10",
     "@types/node": "20.x",
+    "@types/vscode": "^1.97.0",
     "@typescript-eslint/eslint-plugin": "^8.22.0",
     "@typescript-eslint/parser": "^8.22.0",
-    "eslint": "^9.19.0",
-    "typescript": "^5.7.3",
     "@vscode/test-cli": "^0.0.10",
-    "@vscode/test-electron": "^2.4.1"
+    "@vscode/test-electron": "^2.4.1",
+    "@vscode/vsce": "^3.6.2",
+    "esbuild": "^0.25.11",
+    "eslint": "^9.19.0",
+    "jest": "^30.2.0",
+    "ts-jest": "^29.1.0",
+    "ts-loader": "^9.5.4",
+    "tsconfig-paths-webpack-plugin": "^4.2.0",
+    "typescript": "^5.7.3",
+    "webpack": "^5.102.1",
+    "webpack-cli": "^6.0.1"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.0.4",
+    "tree-sitter": "^0.21.0",
+    "tree-sitter-c-sharp": "^0.21.0",
+    "tree-sitter-java": "^0.21.0",
+    "tree-sitter-javascript": "^0.21.0",
+    "tree-sitter-python": "^0.21.0",
     "zod": "^3.24.1"
   }
 }

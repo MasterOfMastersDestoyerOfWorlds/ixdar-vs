@@ -1,8 +1,8 @@
 import * as vscode from "vscode";
-import { CommandModuleImpl, type CommandModule, type McpResult } from "../types/command";
-import { runWithAvailabilityGuard } from "../utils/availability";
-import * as strings from "../utils/strings";
-import * as mcp from "../utils/mcp";
+import { CommandModuleImpl, type CommandModule, type McpResult } from "@/types/command";
+import { runWithAvailabilityGuard } from "@/utils/availability";
+import * as strings from "@/utils/strings";
+import * as mcp from "@/utils/mcp";
 
 const commandName = "onZBreakPoint";
 const languages = ["c", "cpp", "java", "csharp"];

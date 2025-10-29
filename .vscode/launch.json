@@ -12,6 +12,16 @@
 				"${workspaceFolder}/out/**/*.js"
 			],
 			"preLaunchTask": "${defaultBuildTask}"
+		},
+		{
+			"name": "Run Tests",
+			"type": "node",
+			"request": "launch",
+			"args": [
+				"${workspaceFolder}/node_modules/jest/bin/jest.js",
+				"--watch"
+			],
+			"cwd": "${workspaceFolder}"
 		}
 	]
 }

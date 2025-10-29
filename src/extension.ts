@@ -4,8 +4,9 @@ import * as vscode from "vscode";
 import * as http from "http";
 import * as fs from "fs";
 import * as path from "path";
-import type { CommandModule } from "./types/command";
-import { getActiveRepoName, getActiveLanguageId, isAvailable, isAvailableForListing } from './utils/availability';
+import type { CommandModule } from "@/types/command";
+import { getActiveRepoName, getActiveLanguageId, isAvailable, isAvailableForListing } from '@/utils/availability';
+import * as parser from '@/utils/parser';
 
 // availability helpers are provided by utils/availability
 
@@ -57,6 +58,23 @@ export async function activate(context: vscode.ExtensionContext) {
   } catch (e) {
     console.error("Error discovering command modules:", e);
   }
+
+  // Register parse tree cache listeners
+  // Update parse tree on document changes (incremental parsing)
+  context.subscriptions.push(
+    vscode.workspace.onDidChangeTextDocument((event) => {
+      if (parser.isLanguageSupported(event.document.languageId)) {
+        parser.updateParseTree(event.document, event.contentChanges);
+      }
+    })
+  );
+
+  // Clear parse tree cache when document is closed
+  context.subscriptions.push(
+    vscode.workspace.onDidCloseTextDocument((document) => {
+      parser.clearParseTree(document);
+    })
+  );
 
   // Check if MCP server is enabled
   const config = vscode.workspace.getConfiguration('ixdar-vs');

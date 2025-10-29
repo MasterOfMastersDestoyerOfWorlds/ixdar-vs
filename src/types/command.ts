@@ -2,6 +2,7 @@ import type { ExtensionContext } from "vscode";
 import * as vscode from "vscode";
 import * as strings from "../utils/strings";
 import { runWithAvailabilityGuard } from "../utils/availability";
+import type Parser from "tree-sitter";
 export interface McpToolDefinition {
   name: string;
   description: string;
@@ -49,7 +50,7 @@ export class CommandModuleImpl implements CommandModule {
     repoName: string | undefined,
     commandName: string,
     languages: string[] | undefined,
-    commandFunc: () => Promise<void> | void,
+    commandFunc: (parseTree?: Parser.Tree) => Promise<void> | void,
 	mcpFunc: (args: any) => Promise<McpResult>,
     description: string,
     inputSchema: any
@@ -74,7 +75,7 @@ export class CommandModuleImpl implements CommandModule {
               this.meta,
               editor.document.uri,
               (msg) => vscode.window.showWarningMessage(msg),
-              commandFunc
+              () => commandFunc() // Call without parse tree by default, commands can get it themselves
             );
           }
         );

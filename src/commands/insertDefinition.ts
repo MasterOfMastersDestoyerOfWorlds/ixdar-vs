@@ -1,8 +1,8 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 import * as https from 'https';
-import { CommandModule, McpResult, CommandModuleImpl } from '../types/command';
-import * as strings from '../utils/strings';
+import { CommandModule, McpResult, CommandModuleImpl } from '@/types/command';
+import * as strings from '@/utils/strings';
 
 
 

@@ -3,11 +3,11 @@
  * Eg. "my_test-string" => "MyTestString"
  */
 export function toPascalCase(str: string): string {
-    return str
-        .replace(/[_\- ]+/g, ' ')
-        .split(' ')
-        .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-        .join('');
+  return str
+    .replace(/[_\- ]+/g, " ")
+    .split(" ")
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join("");
 }
 
 /**
@@ -15,11 +15,11 @@ export function toPascalCase(str: string): string {
  * Eg. "MyTestString" => "my_test_string"
  */
 export function toSnakeCase(str: string): string {
-    return str
-        .replace(/([A-Z])/g, '_$1') // Add underscores before capitals
-        .replace(/[\-\s]+/g, '_')   // Replace spaces/dashes with underscores
-        .replace(/^_+/, '')         // Remove leading underscores
-        .toLowerCase();
+  return str
+    .replace(/([A-Z])/g, "_$1") // Add underscores before capitals
+    .replace(/[\-\s]+/g, "_") // Replace spaces/dashes with underscores
+    .replace(/^_+/, "") // Remove leading underscores
+    .toLowerCase();
 }
 
 /**
@@ -27,11 +27,11 @@ export function toSnakeCase(str: string): string {
  * Eg. "MyTestString" => "my_test_string"
  */
 export function toSnakeCaseCapitalized(str: string): string {
-    return str
-        .replace(/([A-Z])/g, '_$1') // Add underscores before capitals
-        .replace(/[\-\s]+/g, '_')   // Replace spaces/dashes with underscores
-        .replace(/^_+/, '')         // Remove leading underscores
-        .toUpperCase();
+  return str
+    .replace(/([A-Z])/g, "_$1") // Add underscores before capitals
+    .replace(/[\-\s]+/g, "_") // Replace spaces/dashes with underscores
+    .replace(/^_+/, "") // Remove leading underscores
+    .toUpperCase();
 }
 
 /**
@@ -39,14 +39,14 @@ export function toSnakeCaseCapitalized(str: string): string {
  * Eg. "my_test-string words" => "myTestStringWords"
  */
 export function toCamelCase(str: string): string {
-    const pascal = toPascalCase(str);
-    return uncapitalize(pascal);
+  const pascal = toPascalCase(str);
+  return uncapitalize(pascal);
 }
 
 export function toDashedCase(term: string): string {
-	const lower = term.trim().toLowerCase();
-	const dashed = lower.replace(/[^a-z0-9]+/g, '-');
-	return dashed.replace(/^-+|-+$/g, '');
+  const lower = term.trim().toLowerCase();
+  const dashed = lower.replace(/[^a-z0-9]+/g, "-");
+  return dashed.replace(/^-+|-+$/g, "");
 }
 
 /**
@@ -54,8 +54,8 @@ export function toDashedCase(term: string): string {
  * Eg. "hello world" => "Hello world"
  */
 export function capitalize(str: string): string {
-    if (!str) return '';
-    return str.charAt(0).toUpperCase() + str.slice(1);
+  if (!str) return "";
+  return str.charAt(0).toUpperCase() + str.slice(1);
 }
 
 /**
@@ -63,8 +63,8 @@ export function capitalize(str: string): string {
  * Eg. "Hello world" => "hello world"
  */
 export function uncapitalize(str: string): string {
-    if (!str) return '';
-    return str.charAt(0).toLowerCase() + str.slice(1);
+  if (!str) return "";
+  return str.charAt(0).toLowerCase() + str.slice(1);
 }
 
 /**
@@ -73,17 +73,150 @@ export function uncapitalize(str: string): string {
  * Eg. "anXMLParser" => ["an", "XML", "Parser"]
  */
 export function splitByCapitals(str: string): string[] {
-    if (!str) return [];
-    return str
-        .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
-        .replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2')
-        .split(/[\s\-_]+/);
+  if (!str) return [];
+  return str
+    .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
+    .replace(/([A-Z]+)([A-Z][a-z])/g, "$1 $2")
+    .split(/[\s\-_]+/);
+}
+
+export enum StringCases {
+  SnakeCase,
+  SnakeCaseCapitalized,
+  PascalCase,
+  CamelCase,
+  DashedCase,
+  None,
+}
+
+/**
+ * Checks if a string is in snake_case format.
+ * Eg. "my_test_string" => true, "MyTestString" => false
+ */
+export function isSnakeCase(str: string): boolean {
+  if (!str) return false;
+  return /^[a-z0-9]+(_[a-z0-9]+)*$/.test(str);
+}
+
+/**
+ * Checks if a string is in SNAKE_CASE_CAPITALIZED format.
+ * Eg. "MY_TEST_STRING" => true, "my_test_string" => false
+ */
+export function isSnakeCaseCapitalized(str: string): boolean {
+  if (!str) return false;
+  return /^[A-Z0-9]+(_[A-Z0-9]+)*$/.test(str);
+}
+
+/**
+ * Checks if a string is in PascalCase format.
+ * Eg. "MyTestString" => true, "myTestString" => false
+ */
+export function isPascalCase(str: string): boolean {
+  if (!str) return false;
+  return (
+    /^[A-Z][a-zA-Z0-9]*$/.test(str) &&
+    str !== str.toLowerCase() &&
+    str !== str.toUpperCase()
+  );
+}
+
+/**
+ * Checks if a string is in camelCase format.
+ * Eg. "myTestString" => true, "MyTestString" => false
+ */
+export function isCamelCase(str: string): boolean {
+  if (!str) return false;
+  return (
+    /^[a-z][a-zA-Z0-9]*$/.test(str) &&
+    str !== str.toLowerCase() &&
+    /[A-Z]/.test(str)
+  );
+}
+
+/**
+ * Checks if a string is in dashed-case format.
+ * Eg. "my-test-string" => true, "MyTestString" => false
+ */
+export function isDashedCase(str: string): boolean {
+  if (!str) return false;
+  return /^[a-z0-9]+(-[a-z0-9]+)*$/.test(str);
+}
+
+export function convertString(str: string, caseType: StringCases): string {
+  switch (caseType) {
+    case StringCases.SnakeCase:
+      return toSnakeCase(str);
+    case StringCases.SnakeCaseCapitalized:
+      return toSnakeCaseCapitalized(str);
+    case StringCases.PascalCase:
+      return toPascalCase(str);
+    case StringCases.CamelCase:
+      return toCamelCase(str);
+    case StringCases.DashedCase:
+      return toDashedCase(str);
+    default:
+      return str;
+  }
+}
+
+export function getStringCase(str: string): StringCases {
+  if (isSnakeCase(str)) {
+    return StringCases.SnakeCase;
+  } else if (isSnakeCaseCapitalized(str)) {
+    return StringCases.SnakeCaseCapitalized;
+  } else if (isPascalCase(str)) {
+    return StringCases.PascalCase;
+  } else if (isCamelCase(str)) {
+    return StringCases.CamelCase;
+  } else if (isDashedCase(str)) {
+    return StringCases.DashedCase;
+  }
+  return StringCases.None;
+}
+
+export function getAllCases(str: string): string[] {
+  return [
+    toSnakeCase(str),
+    toSnakeCaseCapitalized(str),
+    toPascalCase(str),
+    toCamelCase(str),
+    toDashedCase(str),
+  ];
+}
+
+export function getFunctionForCase(caseType: StringCases): string {
+  switch (caseType) {
+    case StringCases.SnakeCase:
+      return "toSnakeCase";
+    case StringCases.SnakeCaseCapitalized:
+      return "toSnakeCaseCapitalized";
+    case StringCases.PascalCase:
+      return "toPascalCase";
+    case StringCases.CamelCase:
+      return "toCamelCase";
+    case StringCases.DashedCase:
+      return "toDashedCase";
+    default:
+      return "";
+  }
+}
+
+export function lineContains(line: string, cases: string[]): boolean {
+  let lineParts = line.split(/[\s]+/);
+  for (let i = 0; i < lineParts.length; i++) {
+    for (let i = 0; i < cases.length; i++) {
+      if (lineParts[i] === cases[i]) {
+        return true;
+      }
+    }
+  }
+  return false;
 }
 
 export function extensionName(): string {
-    return 'ixdar-vs';
+  return "ixdar-vs";
 }
 
-export function extensionCommandName( commandName: string ): string {
-    return `${extensionName()}.${commandName}`;
+export function extensionCommandName(commandName: string): string {
+  return `${extensionName()}.${commandName}`;
 }

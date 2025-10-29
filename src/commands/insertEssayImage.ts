@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
-import { CommandModuleImpl, type CommandModule, type McpResult } from '../types/command';
-import { runWithAvailabilityGuard } from '../utils/availability';
+import { CommandModuleImpl, type CommandModule, type McpResult } from '@/types/command';
+import { runWithAvailabilityGuard } from '@/utils/availability';
 
 async function listEssayImagesForDocument(document: vscode.TextDocument): Promise<string[] | undefined> {
 	const workspaceFolder = vscode.workspace.getWorkspaceFolder(document.uri);
