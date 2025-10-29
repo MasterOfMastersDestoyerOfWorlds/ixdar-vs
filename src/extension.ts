@@ -7,6 +7,13 @@ import * as path from "path";
 import type { CommandModule } from "@/types/command";
 import { getActiveRepoName, getActiveLanguageId, isAvailable, isAvailableForListing } from '@/utils/availability';
 import * as parser from '@/utils/parser';
+import { Server } from "@modelcontextprotocol/sdk/server/index.js";
+import { 
+  ListToolsRequestSchema,
+  CallToolRequestSchema
+} from "@modelcontextprotocol/sdk/types.js";
+import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 
 // availability helpers are provided by utils/availability
 
@@ -88,12 +95,6 @@ export async function activate(context: vscode.ExtensionContext) {
   const transportType = config.get<string>('mcp.transport', 'stdio');
   const httpPort = config.get<number>('mcp.httpPort', 45555);
 
-  const sdkServer: any = await import("@modelcontextprotocol/sdk/server/index.js");
-  const sdkTypes: any = await import("@modelcontextprotocol/sdk/types.js");
-
-  const { Server } = sdkServer;
-  const { StdioServerTransport } = sdkTypes;
-
   const mcp = new Server(
     {
       name: "ixdar-tools",
@@ -118,7 +119,7 @@ export async function activate(context: vscode.ExtensionContext) {
     .map((m) => m.mcp.tool);
   console.log("dynamic2", initialDynamic);
 
-  mcp.setRequestHandler(sdkTypes.ListToolsRequestSchema, async () => {
+  mcp.setRequestHandler(ListToolsRequestSchema, async () => {
     const repoName = await getActiveRepoName();
     const langId = getActiveLanguageId();
     const dynamic = Array.from(dynamicTools.values())
@@ -158,7 +159,7 @@ export async function activate(context: vscode.ExtensionContext) {
   });
 
   // Tool execution handler
-  mcp.setRequestHandler(sdkTypes.CallToolRequestSchema, async (request: any) => {
+  mcp.setRequestHandler(CallToolRequestSchema, async (request: any): Promise<any> => {
     try {
       switch (request.params.name) {
         case "list_commands": {
@@ -243,9 +244,6 @@ export async function activate(context: vscode.ExtensionContext) {
   let httpServer: http.Server | undefined;
   
   if (transportType === 'http') {
-    const sdkHttp: any = await import("@modelcontextprotocol/sdk/server/streamableHttp.js");
-    const { StreamableHTTPServerTransport } = sdkHttp;
-    
     // Create the transport
     transport = new StreamableHTTPServerTransport({
       sessionIdGenerator: undefined, // Stateless mode
