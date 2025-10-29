@@ -48,27 +48,17 @@ export const commandFunc = async (parseTree?: Parser.Tree) => {
 
   const text = document.getText();
 
-  const isSlashCommentLang = [
-    "javascript",
-    "typescript",
-    "javascriptreact",
-    "typescriptreact",
-    "java",
-    "csharp",
-  ].includes(languageId);
-  const isHashCommentLang = ["python"].includes(languageId);
+  const lineCommentKeyword = parser.getLineCommentKeyword(languageId);
+  const commentSymbol = parser.getCommentSymbol(languageId);
 
-  const cursor = tree.walk();
-
-  const query = new Parser.Query(language, `(comment) @c`);
+  const query = new Parser.Query(language, `(${lineCommentKeyword}) @c`);
 
   // 3. Find all matches in the tree
   const matches = query.matches(tree.rootNode);
 
-  // 4. Filter the matches to find only single-line (//) comments
   const nodesToRemove = matches
     .map((match: { captures: { node: any }[] }) => match.captures[0].node) // Get the actual node from each match
-    .filter((node: { text: string }) => node.text.startsWith("//")); // Keep only nodes that are single-line comments
+    .filter((node: Parser.SyntaxNode) => node.type === lineCommentKeyword && node.text.startsWith(commentSymbol)); // Keep only nodes that are single-line comments
 
   function isFullLineComment(node: any) {
     // Get the node that comes immediately before this one *at the same level*.

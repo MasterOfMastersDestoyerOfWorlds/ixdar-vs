@@ -2,9 +2,11 @@
 const x = 10; // Inline comment after code
 const url = "http://example.com"; // URL should be preserved
 
-/* This is a block comment
-   that spans multiple lines
-   and should NOT be removed */
+/** 
+ * This is a block comment
+ * that spans multiple lines
+ * and should NOT be removed
+ */
 
 function example() {
   // Comment inside function
@@ -12,4 +14,3 @@ function example() {
 }
 
 // Final comment at the end
-

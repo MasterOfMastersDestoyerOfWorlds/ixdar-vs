@@ -164,3 +164,42 @@ export function isLanguageSupported(languageId: string): boolean {
 export function getSupportedLanguages(): string[] {
   return Object.keys(parsers);
 }
+
+export function getLineCommentKeyword(languageId: string) {
+  switch (languageId) {
+    case "javascript":
+      return "comment";
+    case "typescript":
+      return "comment";
+    case "javascriptreact":
+      return "comment";
+    case "typescriptreact":
+      return "comment";
+    case "java":
+      return "line_comment";
+    case "python":
+      return "comment";
+    case "csharp":
+      return "comment";
+  }
+}
+export function getCommentSymbol(languageId: string): string {
+  switch (languageId) {
+    case "javascript":
+      return "//";
+    case "typescript":
+      return "//";
+    case "javascriptreact":
+      return "//";
+    case "typescriptreact":
+      return "//";
+    case "java":
+      return "//";
+    case "python":
+      return "#";
+    case "csharp":
+      return "//";
+  }
+  return "//";
+}
+
