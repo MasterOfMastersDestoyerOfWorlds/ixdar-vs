@@ -34,8 +34,12 @@ const mockVscode = {
     file: jest.fn((path: string) => ({ fsPath: path, toString: () => path })),
     joinPath: jest.fn(),
   },
-  Range: jest.fn(),
-  Position: jest.fn(),
+  Position: class Position {
+    constructor(public line: number, public character: number) {}
+  },
+  Range: class Range {
+    constructor(public start: any, public end: any) {}
+  },
   TextDocument: jest.fn(),
   ExtensionContext: jest.fn(),
 };

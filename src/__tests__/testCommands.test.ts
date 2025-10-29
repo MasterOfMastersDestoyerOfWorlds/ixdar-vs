@@ -91,7 +91,7 @@ describe("Command Tests", () => {
       }),
       offsetAt: jest.fn((position: any) => {
         let offset = 0;
-        for (let i = 0; i < position.row || position.line || 0; i++) {
+        for (let i = 0; i < position.line; i++) {
           offset += (lines[i]?.length || 0) + 1; // +1 for newline
         }
         offset += position.column || position.character || 0;
@@ -141,7 +141,7 @@ describe("Command Tests", () => {
       viewColumn: 1,
       edit: jest.fn(async (callback: any) => {
         const editBuilder = {
-          replace: jest.fn((range: any, text: string) => {
+          replace: jest.fn((range: vscode.Range, text: string) => {
             // Update the document's text
             const doc = document as any;
             doc.getText = jest.fn(() => text);
@@ -165,8 +165,73 @@ describe("Command Tests", () => {
               };
             });
           }),
-          insert: jest.fn(),
-          delete: jest.fn(),
+          insert: jest.fn((position: vscode.Position, text: string) => {
+            // Get current text and calculate offset
+            const doc = document as any;
+            const currentText = doc.getText();
+            const offset = doc.offsetAt(position);
+            
+            // Insert text at position
+            const newText = currentText.slice(0, offset) + text + currentText.slice(offset);
+            
+            // Update the document's text
+            doc.getText = jest.fn(() => newText);
+            
+            // Update lines array for lineAt
+            const newLines = newText.split("\n");
+            doc.lineCount = newLines.length;
+            doc.lineAt = jest.fn((line: number) => {
+              const lineText = newLines[line] || "";
+              return {
+                lineNumber: line,
+                text: lineText,
+                range: {
+                  start: { line, character: 0 },
+                  end: { line, character: lineText.length },
+                },
+                rangeIncludingLineBreak: {
+                  start: { line, character: 0 },
+                  end: { line: line + 1, character: 0 },
+                },
+                firstNonWhitespaceCharacterIndex: lineText.search(/\S/),
+                isEmptyOrWhitespace: lineText.trim().length === 0,
+              };
+            });
+          }),
+          delete: jest.fn((range: vscode.Range) => {
+            // Get current text and calculate offsets
+            const doc = document as any;
+            const currentText = doc.getText();
+            const startOffset = doc.offsetAt(range.start);
+            const endOffset = doc.offsetAt(range.end);
+            
+            // Delete text in range
+            const newText = currentText.slice(0, startOffset) + currentText.slice(endOffset);
+            
+            // Update the document's text
+            doc.getText = jest.fn(() => newText);
+            
+            // Update lines array for lineAt
+            const newLines = newText.split("\n");
+            doc.lineCount = newLines.length;
+            doc.lineAt = jest.fn((line: number) => {
+              const lineText = newLines[line] || "";
+              return {
+                lineNumber: line,
+                text: lineText,
+                range: {
+                  start: { line, character: 0 },
+                  end: { line, character: lineText.length },
+                },
+                rangeIncludingLineBreak: {
+                  start: { line, character: 0 },
+                  end: { line: line + 1, character: 0 },
+                },
+                firstNonWhitespaceCharacterIndex: lineText.search(/\S/),
+                isEmptyOrWhitespace: lineText.trim().length === 0,
+              };
+            });
+          }),
         };
         await callback(editBuilder);
         return true;
