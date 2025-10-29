@@ -72,11 +72,14 @@ export const commandFunc = async (parseTree?: Parser.Tree) => {
           document.lineAt(node.startPosition.row).rangeIncludingLineBreak
         );
       } else {
+        // For inline comments, find the start of trailing whitespace before the comment
+        const line = document.lineAt(node.startPosition.row);
+        const textBeforeComment = line.text.substring(0, node.startPosition.column);
+        const trimmedText = textBeforeComment.trimEnd();
+        const whitespaceStart = trimmedText.length;
+        
         const range = new vscode.Range(
-          new vscode.Position(
-            node.startPosition.row,
-            node.startPosition.column
-          ),
+          new vscode.Position(node.startPosition.row, whitespaceStart),
           new vscode.Position(node.endPosition.row, node.endPosition.column)
         );
         editBuilder.delete(range);

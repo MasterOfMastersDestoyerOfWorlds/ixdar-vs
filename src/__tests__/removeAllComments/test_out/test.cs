@@ -8,7 +8,7 @@ public class Test {
        and should NOT be removed */
     
     public int Example() {
-        return x * 2; 
+        return x * 2;
     }
     
 }
