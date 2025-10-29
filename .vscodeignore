@@ -9,10 +9,4 @@ vsc-extension-quickstart.md
 **/*.map
 **/*.ts
 **/.vscode-test.*
-node_modules/**
 webpack.config.js
-!node_modules/tree-sitter/
-!node_modules/tree-sitter-c-sharp/
-!node_modules/tree-sitter-java/
-!node_modules/tree-sitter-javascript/
-!node_modules/tree-sitter-python/

@@ -2,7 +2,7 @@
   "name": "ixdar-vs",
   "displayName": "ixdar-vs",
   "description": "Higher level templating and diff automation",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "repository": {
     "type": "git",
     "url": "https://github.com/MasterOfMastersDestoyerOfWorlds/ixdar-vs"
