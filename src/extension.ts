@@ -19,7 +19,14 @@ import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/
 export async function activate(context: vscode.ExtensionContext) {
   console.log('Congratulations, your extension "ixdar-vs" mcp is now active!');
 
-  const { CommandRegistry } = await import("./commands");
+  // Auto-discover and import all command modules
+  const commandContext = require.context('./commands', false, /\.ts$/);
+  commandContext.keys().forEach((key: string) => {
+    if (key !== './index.ts') {
+      commandContext(key);
+    }
+  });
+  const { CommandRegistry } = await import('./utils/commandRegistry');
 
   const commandModules = CommandRegistry.getInstance().getAll();
   console.log(`Loaded ${commandModules.length} command modules from registry`);
