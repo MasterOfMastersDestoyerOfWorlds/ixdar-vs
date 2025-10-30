@@ -48,6 +48,10 @@
         "title": "IX: zBreakPoint"
       },
       {
+        "command": "ixdar-vs.ixCommand",
+        "title": "IX: Run Ix Command"
+      },
+      {
         "command": "ixdar-vs.insertDefinitionShortcode",
         "title": "IX: Insert Definition Shortcode"
       },

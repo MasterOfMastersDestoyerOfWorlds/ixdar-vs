@@ -1,46 +1,40 @@
-// The module 'vscode' contains the VS Code extensibility API
-// Import the module and reference it with the alias vscode in your code below
 import * as vscode from "vscode";
 import * as http from "http";
 import type { CommandModule } from "@/types/command";
-import { getActiveRepoName, getActiveLanguageId, isAvailable, isAvailableForListing } from '@/utils/availability';
-import * as parser from '@/utils/parser';
+import {
+  getActiveRepoName,
+  getActiveLanguageId,
+  isAvailable,
+  isAvailableForListing,
+} from "@/utils/availability";
+import * as parser from "@/utils/parser";
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
-import { 
+import {
   ListToolsRequestSchema,
-  CallToolRequestSchema
+  CallToolRequestSchema,
 } from "@modelcontextprotocol/sdk/types.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 
-// availability helpers are provided by utils/availability
-
-// This method is called when your extension is activated
-// Your extension is activated the very first time the command is executed
 export async function activate(context: vscode.ExtensionContext) {
-  // Use the console to output diagnostic information (console.log) and errors (console.error)
-  // This line of code will only be executed once when your extension is activated
   console.log('Congratulations, your extension "ixdar-vs" mcp is now active!');
 
-  // Import all commands (triggers @RegisterCommand decorators)
-  // and get the registry
-  const { CommandRegistry } = await import('./commands');
-  
-  // Get all registered commands from the registry
+  const { CommandRegistry } = await import("./commands");
+
   const commandModules = CommandRegistry.getInstance().getAll();
   console.log(`Loaded ${commandModules.length} command modules from registry`);
-  
-  // Register all commands with VS Code
+
   for (const cmd of commandModules) {
     try {
       if (cmd && cmd.vscodeCommand && cmd.mcp) {
-        // Check if command already exists
         const existingCommands = await vscode.commands.getCommands(true);
         if (existingCommands.includes(cmd.vscodeCommand.id)) {
-          console.warn(`Command ${cmd.vscodeCommand.id} already registered, skipping.`);
+          console.warn(
+            `Command ${cmd.vscodeCommand.id} already registered, skipping.`
+          );
           continue;
         }
-        
+
         cmd.vscodeCommand.register(context);
         console.log(`Registered command: ${cmd.vscodeCommand.id}`);
       } else {
@@ -51,8 +45,6 @@ export async function activate(context: vscode.ExtensionContext) {
     }
   }
 
-  // Register parse tree cache listeners
-  // Update parse tree on document changes (incremental parsing)
   context.subscriptions.push(
     vscode.workspace.onDidChangeTextDocument((event) => {
       if (parser.isLanguageSupported(event.document.languageId)) {
@@ -61,24 +53,22 @@ export async function activate(context: vscode.ExtensionContext) {
     })
   );
 
-  // Clear parse tree cache when document is closed
   context.subscriptions.push(
     vscode.workspace.onDidCloseTextDocument((document) => {
       parser.clearParseTree(document);
     })
   );
 
-  // Check if MCP server is enabled
-  const config = vscode.workspace.getConfiguration('ixdar-vs');
-  const mcpEnabled = config.get<boolean>('mcp.enabled', true);
-  
+  const config = vscode.workspace.getConfiguration("ixdar-vs");
+  const mcpEnabled = config.get<boolean>("mcp.enabled", true);
+
   if (!mcpEnabled) {
-    console.log('MCP server is disabled in settings');
+    console.log("MCP server is disabled in settings");
     return;
   }
 
-  const transportType = config.get<string>('mcp.transport', 'stdio');
-  const httpPort = config.get<number>('mcp.httpPort', 45555);
+  const transportType = config.get<string>("mcp.transport", "stdio");
+  const httpPort = config.get<number>("mcp.httpPort", 45555);
 
   const mcp = new Server(
     {
@@ -96,11 +86,13 @@ export async function activate(context: vscode.ExtensionContext) {
   for (const cmd of commandModules) {
     dynamicTools.set(cmd.mcp.tool.name, cmd);
   }
-  
+
   const initialRepoName = await getActiveRepoName();
   const initialLangId = getActiveLanguageId();
   const initialDynamic = Array.from(dynamicTools.values())
-    .filter((m) => isAvailableForListing(m.meta, initialRepoName, initialLangId))
+    .filter((m) =>
+      isAvailableForListing(m.meta, initialRepoName, initialLangId)
+    )
     .map((m) => m.mcp.tool);
   console.log("dynamic2", initialDynamic);
 
@@ -114,7 +106,8 @@ export async function activate(context: vscode.ExtensionContext) {
     const tools = [
       {
         name: "list_commands",
-        description: "List VS Code commands starting with a prefix (default: ixdar-vs.)",
+        description:
+          "List VS Code commands starting with a prefix (default: ixdar-vs.)",
         inputSchema: {
           type: "object",
           properties: {
@@ -128,12 +121,20 @@ export async function activate(context: vscode.ExtensionContext) {
       },
       {
         name: "execute_vscode_command",
-        description: "Execute any VS Code command by its ID. Use list_commands to see available commands.",
+        description:
+          "Execute any VS Code command by its ID. Use list_commands to see available commands.",
         inputSchema: {
           type: "object",
           properties: {
-            command: { type: "string", description: "The VS Code command ID to execute" },
-            args: { type: "array", description: "Optional arguments to pass to the command", items: { type: "string" } },
+            command: {
+              type: "string",
+              description: "The VS Code command ID to execute",
+            },
+            args: {
+              type: "array",
+              description: "Optional arguments to pass to the command",
+              items: { type: "string" },
+            },
           },
           required: ["command"],
         },
@@ -143,155 +144,180 @@ export async function activate(context: vscode.ExtensionContext) {
     return { tools };
   });
 
-  // Tool execution handler
-  mcp.setRequestHandler(CallToolRequestSchema, async (request: any): Promise<any> => {
-    try {
-      switch (request.params.name) {
-        case "list_commands": {
-          const prefix = (request.params.arguments?.prefix as string) ?? "ixdar-vs.";
-          const allCommands = await vscode.commands.getCommands(true);
-          const filtered = allCommands.filter((id) => id.startsWith(prefix));
-          return {
-            content: [
-              {
-                type: "text",
-                text: JSON.stringify({ commands: filtered }, null, 2),
-              },
-            ],
-          };
-        }
-        
-        case "execute_vscode_command": {
-          const commandId = request.params.arguments?.command as string;
-          const args = (request.params.arguments?.args as any[]) ?? [];
-          if (!commandId) {
+  mcp.setRequestHandler(
+    CallToolRequestSchema,
+    async (request: any): Promise<any> => {
+      try {
+        switch (request.params.name) {
+          case "list_commands": {
+            const prefix =
+              (request.params.arguments?.prefix as string) ?? "ixdar-vs.";
+            const allCommands = await vscode.commands.getCommands(true);
+            const filtered = allCommands.filter((id) => id.startsWith(prefix));
             return {
               content: [
                 {
                   type: "text",
-                  text: JSON.stringify({ error: "Command ID is required" }),
+                  text: JSON.stringify({ commands: filtered }, null, 2),
                 },
               ],
-              isError: true,
             };
           }
-          await vscode.commands.executeCommand(commandId, ...args);
-          return {
-            content: [
-              {
-                type: "text",
-                text: JSON.stringify({ 
-                  success: true, 
-                  message: `Executed command: ${commandId}` 
-                }),
-              },
-            ],
-          };
-        }
-        
-        default: {
-          const toolName = request.params.name as string;
-          const mod = dynamicTools.get(toolName);
-          if (!mod) {
-            return {
-              content: [ { type: "text", text: JSON.stringify({ error: `Unknown tool: ${toolName}` }) } ],
-              isError: true,
-            };
-          }
-          const repoName = await getActiveRepoName();
-          const langId = getActiveLanguageId();
-          if (!isAvailable(mod.meta, repoName, langId)) {
-            return {
-              content: [ { type: "text", text: JSON.stringify({ error: "Tool not available in this repository or language" }) } ],
-              isError: true,
-            };
-          }
-          return await mod.mcp.call(request.params.arguments ?? {});
-        }
-      }
-    } catch (error: any) {
-      return {
-        content: [
-          {
-            type: "text",
-            text: JSON.stringify({ 
-              error: error.message ?? "Unknown error occurred" 
-            }),
-          },
-        ],
-        isError: true,
-      };
-    }
-  });
 
-  // Start the MCP server with the configured transport
+          case "execute_vscode_command": {
+            const commandId = request.params.arguments?.command as string;
+            const args = (request.params.arguments?.args as any[]) ?? [];
+            if (!commandId) {
+              return {
+                content: [
+                  {
+                    type: "text",
+                    text: JSON.stringify({ error: "Command ID is required" }),
+                  },
+                ],
+                isError: true,
+              };
+            }
+            await vscode.commands.executeCommand(commandId, ...args);
+            return {
+              content: [
+                {
+                  type: "text",
+                  text: JSON.stringify({
+                    success: true,
+                    message: `Executed command: ${commandId}`,
+                  }),
+                },
+              ],
+            };
+          }
+
+          default: {
+            const toolName = request.params.name as string;
+            const mod = dynamicTools.get(toolName);
+            if (!mod) {
+              return {
+                content: [
+                  {
+                    type: "text",
+                    text: JSON.stringify({
+                      error: `Unknown tool: ${toolName}`,
+                    }),
+                  },
+                ],
+                isError: true,
+              };
+            }
+            const repoName = await getActiveRepoName();
+            const langId = getActiveLanguageId();
+            if (!isAvailable(mod.meta, repoName, langId)) {
+              return {
+                content: [
+                  {
+                    type: "text",
+                    text: JSON.stringify({
+                      error:
+                        "Tool not available in this repository or language",
+                    }),
+                  },
+                ],
+                isError: true,
+              };
+            }
+            return await mod.mcp.call(request.params.arguments ?? {});
+          }
+        }
+      } catch (error: any) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify({
+                error: error.message ?? "Unknown error occurred",
+              }),
+            },
+          ],
+          isError: true,
+        };
+      }
+    }
+  );
+
   let transport: any;
   let httpServer: http.Server | undefined;
-  
-  if (transportType === 'http') {
-    // Create the transport
+
+  if (transportType === "http") {
     transport = new StreamableHTTPServerTransport({
-      sessionIdGenerator: undefined, // Stateless mode
+      sessionIdGenerator: undefined,
     });
-    
-    // Create HTTP server
+
     httpServer = http.createServer(async (req, res) => {
-      // Enable CORS
-      res.setHeader('Access-Control-Allow-Origin', '*');
-      res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-      res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-      
-      if (req.method === 'OPTIONS') {
+      res.setHeader("Access-Control-Allow-Origin", "*");
+      res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+      res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+
+      if (req.method === "OPTIONS") {
         res.writeHead(200);
         res.end();
         return;
       }
-      
-      // Parse request body for POST requests
+
       let body: any = undefined;
-      if (req.method === 'POST') {
+      if (req.method === "POST") {
         const chunks: Buffer[] = [];
         for await (const chunk of req) {
           chunks.push(chunk as Buffer);
         }
-        const bodyText = Buffer.concat(chunks).toString('utf-8');
+        const bodyText = Buffer.concat(chunks).toString("utf-8");
         try {
           body = JSON.parse(bodyText);
         } catch (error) {
-          res.writeHead(400, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ error: 'Invalid JSON' }));
+          res.writeHead(400, { "Content-Type": "application/json" });
+          res.end(JSON.stringify({ error: "Invalid JSON" }));
           return;
         }
       }
-      
-      // Handle the request with the transport
+
       try {
         await transport.handleRequest(req, res, body);
       } catch (error: any) {
-        console.error('Error handling MCP request:', error);
+        console.error("Error handling MCP request:", error);
         if (!res.headersSent) {
-          res.writeHead(500, { 'Content-Type': 'application/json' });
+          res.writeHead(500, { "Content-Type": "application/json" });
           res.end(JSON.stringify({ error: error.message }));
         }
       }
     });
-    
-    // Start listening
+
     await new Promise<void>((resolve, reject) => {
-      httpServer!.listen(httpPort, '127.0.0.1', () => {
-        console.log(`MCP server (HTTP/SSE) listening on http://127.0.0.1:${httpPort}`);
+      httpServer!.listen(httpPort, "127.0.0.1", () => {
+        console.log(
+          `MCP server (HTTP/SSE) listening on http://127.0.0.1:${httpPort}`
+        );
         resolve();
       });
-      httpServer!.on('error', reject);
+      httpServer!.on("error", (error: any) => {
+        if (error.code === "EADDRINUSE") {
+          const message =
+            `Port ${httpPort} is already in use. Please either:\n` +
+            `1. Stop the process using that port, or\n` +
+            `2. Change the port in settings: ixdar-vs.mcp.httpPort\n` +
+            `3. Disable MCP server in settings: ixdar-vs.mcp.enabled`;
+          vscode.window.showErrorMessage(message);
+          console.error(message);
+          resolve();
+        } else {
+          reject(error);
+        }
+      });
     });
-    
   } else {
     transport = new StdioServerTransport();
     console.error("MCP server (stdio) started for ixdar-tools");
   }
-  
+
   await mcp.connect(transport);
-  
+
   context.subscriptions.push({
     dispose: async () => {
       try {
