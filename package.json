@@ -2,7 +2,7 @@
   "name": "ixdar-vs",
   "displayName": "ixdar-vs",
   "description": "Higher level templating and diff automation",
-  "version": "0.0.3",
+  "version": "0.0.8",
   "repository": {
     "type": "git",
     "url": "https://github.com/MasterOfMastersDestoyerOfWorlds/ixdar-vs"
@@ -49,7 +49,7 @@
       },
       {
         "command": "ixdar-vs.ixCommand",
-        "title": "IX: Run Ix Command"
+        "title": "IX: Ixdar Command"
       },
       {
         "command": "ixdar-vs.insertDefinitionShortcode",

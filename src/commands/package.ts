@@ -73,20 +73,33 @@ const commandFunc = async () => {
       }, 500);
     });
 
-    vscode.window.showInformationMessage("Package created, installing...");
+    vscode.window.showInformationMessage("Package created successfully!");
 
-    // Step 4: Install the VSIX
     const vsixUri = vscode.Uri.file(vsixPath);
-    await vscode.commands.executeCommand("workbench.extensions.installVsix", vsixUri);
-    
-    vscode.window.showInformationMessage(
-      `Successfully packaged and installed ${packageJson.name} v${newVersion}. Reload window to activate.`,
-      "Reload Window"
-    ).then(selection => {
-      if (selection === "Reload Window") {
-        vscode.commands.executeCommand("workbench.action.reloadWindow");
-      }
-    });
+    try {
+      await vscode.commands.executeCommand("workbench.extensions.action.installVsix", vsixUri);
+      
+      vscode.window.showInformationMessage(
+        `Successfully packaged and installed ${packageJson.name} v${newVersion}. Reload window to activate.`,
+        "Reload Window"
+      ).then(selection => {
+        if (selection === "Reload Window") {
+          vscode.commands.executeCommand("workbench.action.reloadWindow");
+        }
+      });
+    } catch (installError: any) {
+      vscode.window.showInformationMessage(
+        `Package created at ${vsixPath}. Please install manually or reload window.`,
+        "Open Folder",
+        "Reload Window"
+      ).then(selection => {
+        if (selection === "Open Folder") {
+          vscode.commands.executeCommand("revealFileInOS", vsixUri);
+        } else if (selection === "Reload Window") {
+          vscode.commands.executeCommand("workbench.action.reloadWindow");
+        }
+      });
+    }
 
   } catch (error: any) {
     vscode.window.showErrorMessage(`Failed to package extension: ${error.message}`);

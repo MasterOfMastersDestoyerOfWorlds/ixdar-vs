@@ -9,7 +9,6 @@ const commandName = "newIxdarCommand";
 const languages = undefined;
 const repoName = strings.extensionName();
 const commandFunc = async () => {
-  // This command creates a new command template file in the commands folder.
   const newCommandName = await vscode.window.showInputBox({
     prompt: "Enter a name for your new command (e.g. myNewCommand):",
     validateInput: (value) => {
@@ -23,7 +22,10 @@ const commandFunc = async () => {
     return;
   }
 
-  // Determine file path
+  const newCommandDescription = await vscode.window.showInputBox({
+    prompt: "Enter a description that we will use to build this command",
+  });
+
   const wsFolders = vscode.workspace.workspaceFolders;
   if (!wsFolders || wsFolders.length === 0) {
     vscode.window.showErrorMessage("No workspace folder is open.");
@@ -32,7 +34,6 @@ const commandFunc = async () => {
   const commandsFolderUri = vscode.Uri.joinPath(wsFolders[0].uri, "src", "commands");
   const newFileUri = vscode.Uri.joinPath(commandsFolderUri, `${newCommandName}.ts`);
 
-  // File template
   const template = `
 import * as vscode from "vscode";
 import { CommandModuleImpl, type CommandModule, type McpResult } from "@/types/command";
@@ -82,7 +83,7 @@ export default command;
   } catch {
   }
 
-  await vscode.workspace.fs.createDirectory(commandsFolderUri); // Ensure the directory exists
+  await vscode.workspace.fs.createDirectory(commandsFolderUri); 
   await vscode.workspace.fs.writeFile(newFileUri, Buffer.from(template, 'utf8'));
   vscode.window.showInformationMessage(`New command file created: ${newFileUri.fsPath}`);
   await vscode.window.showTextDocument(newFileUri);
