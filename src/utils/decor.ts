@@ -9,3 +9,10 @@ export function highlightDecor() {
     borderColor: new vscode.ThemeColor("editor.findMatchBorder"),
   });
 }
+export function tokenDecor(): vscode.TextEditorDecorationType {
+  return vscode.window.createTextEditorDecorationType({
+    backgroundColor: new vscode.ThemeColor("editor.wordHighlightBackground"),
+    border: "1px dotted",
+    borderColor: new vscode.ThemeColor("editorBracketMatch.border"),
+  });
+}

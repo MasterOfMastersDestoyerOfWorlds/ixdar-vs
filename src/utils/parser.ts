@@ -126,10 +126,7 @@ export function updateParseTree(
   const uri = document.uri.toString();
   const cached = parseCache.get(uri);
 
-  // Get old tree if available
   const oldTree = cached?.tree;
-
-  // Parse with incremental support
   return getParseTree(document, oldTree);
 }
 
@@ -201,5 +198,52 @@ export function getCommentSymbol(languageId: string): string {
       return "//";
   }
   return "//";
+}
+
+/**
+ * Validate a tree-sitter query string
+ * @param queryString The query string to validate
+ * @param language The tree-sitter language object
+ * @returns An object with valid flag and optional error message
+ */
+export function validateQuery(
+  queryString: string,
+  language: any
+): { valid: boolean; error?: string } {
+  if (!queryString) {
+    return { valid: false };
+  }
+  try {
+    new Parser.Query(language, queryString);
+    return { valid: true };
+  } catch (error: any) {
+    return { valid: false, error: error.message };
+  }
+}
+
+/**
+ * Execute a tree-sitter query on a parse tree
+ * @param tree The parse tree to query
+ * @param queryString The query string
+ * @param language The tree-sitter language object
+ * @returns Array of query matches with captures
+ */
+export function executeQuery(
+  tree: Parser.Tree,
+  queryString: string,
+  language: any
+): Array<{ captures: Array<{ name: string; node: Parser.SyntaxNode }> }> {
+  try {
+    const query = new Parser.Query(language, queryString);
+    const matches = query.matches(tree.rootNode);
+    return matches.map((match: any) => ({
+      captures: match.captures.map((capture: any) => ({
+        name: capture.name,
+        node: capture.node,
+      })),
+    }));
+  } catch (error) {
+    return [];
+  }
 }
 

@@ -110,6 +110,10 @@
       {
         "command": "ixdar-vs.makeTemplateFromFile",
         "title": "IX: Make Template From File"
+      },
+      {
+        "command": "ixdar-vs.treeSitterInspector",
+        "title": "IX: Tree-sitter Inspector"
       }
     ],
     "keybindings": [
