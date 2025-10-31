@@ -1,14 +1,12 @@
-import * as vscode from "vscode";
 import {
   CommandModuleImpl,
   type CommandModule,
   type McpResult,
 } from "@/types/command";
-import { runWithAvailabilityGuard } from "@/utils/availability";
-import * as strings from "@/utils/strings";
-import * as mcp from "@/utils/mcp";
-import { RegisterCommand } from "@/utils/commandRegistry";
 import * as aiCodeGenerator from "@/utils/aiCodeGenerator";
+import { RegisterCommand } from "@/utils/commandRegistry";
+import * as strings from "@/utils/strings";
+import * as vscode from "vscode";
 
 function ixdarCommandTemplate(
   additionalImports: string,

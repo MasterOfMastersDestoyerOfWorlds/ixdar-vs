@@ -22,9 +22,8 @@ async function definitionFileUriForDocument(term: string, document: vscode.TextD
 async function ensureDefinitionFile(term: string, fileUri: vscode.Uri): Promise<void> {
 	try {
 		await vscode.workspace.fs.stat(fileUri);
-		return; // exists
+		return; 
 	} catch {
-		// create directory and file
 		const dirUri = vscode.Uri.file(path.dirname(fileUri.fsPath));
 		await vscode.workspace.fs.createDirectory(dirUri);
 		const content = await fetchWikipediaSummary(term);
@@ -48,7 +47,6 @@ async function fetchWikipediaSummary(term: string): Promise<string> {
 						return;
 					}
 				} catch (_) {
-					// ignore parse errors
 				}
 				resolve(`${term} — definition unavailable.`);
 			});
@@ -84,7 +82,6 @@ async function replaceAllOccurrencesInDocument(document: vscode.TextDocument, wo
 	const text = document.getText();
 	const shortcode = `{{< def "${word}" >}}`;
 	
-	// Find all word boundaries for the word (case-insensitive)
 	const wordRegex = new RegExp(`\\b${word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'gi');
 	const matches: vscode.Range[] = [];
 	let match;
@@ -99,10 +96,8 @@ async function replaceAllOccurrencesInDocument(document: vscode.TextDocument, wo
 		return 0;
 	}
 	
-	// Open the document in an editor if not already open
 	const editor = await vscode.window.showTextDocument(document, { preview: false, preserveFocus: true });
 	
-	// Replace all occurrences in reverse order to maintain positions
 	await editor.edit((editBuilder: vscode.TextEditorEdit) => {
 		for (let i = matches.length - 1; i >= 0; i--) {
 			editBuilder.replace(matches[i], shortcode);
@@ -114,7 +109,6 @@ async function replaceAllOccurrencesInDocument(document: vscode.TextDocument, wo
 
 export async function insertDefinitionForWord(word: string, filePath: string): Promise<{ success: boolean; message: string; replacements?: number }> {
 	try {
-		// Open or get the document
 		const uri = vscode.Uri.file(filePath);
 		let document: vscode.TextDocument;
 		
