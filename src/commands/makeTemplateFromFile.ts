@@ -7,6 +7,7 @@ import {
 import * as strings from "@/utils/strings";
 import * as mcp from "@/utils/mcp";
 import { RegisterCommand } from "@/utils/commandRegistry";
+import * as fs from "@/utils/fs";
 
 /**
  * makeTemplateFromFile: Make a template function from a file by replacing target variables with case-specific template literals.
@@ -30,6 +31,16 @@ const commandFunc = async () => {
 
   if (!targetsInput || targetsInput.length === 0) {
     return;
+  }
+  const camelCaseFileName = `${strings.toCamelCase(editor.document.fileName)}.ts`;
+
+  let fileNameInput = await vscode.window.showInputBox({
+    prompt: "Enter file name (e.g., template.ts)",
+    placeHolder: `${camelCaseFileName}`,
+  });
+
+  if (!fileNameInput) {
+    fileNameInput = camelCaseFileName;
   }
 
   const targets = targetsInput
@@ -65,12 +76,13 @@ const commandFunc = async () => {
   const argsList = targets.map((_, i) => `arg${i}`).join(", ");
   const templateFunction = `function makeTemplate(${argsList}: string) {\n  return \`${content}\`;\n}`;
 
-  editor.edit((editBuilder) => {
-    editBuilder.insert(editor.selection.active, templateFunction);
-  });
+  const templateFile = await fs.createTemplateFile(
+    templateFunction,
+    fileNameInput
+  );
 
   vscode.window.showInformationMessage(
-    `Template function created with ${targets.length} target(s).`
+    `Template function created in ${templateFile.fsPath}`
   );
 };
 
