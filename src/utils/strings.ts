@@ -3,9 +3,7 @@
  * Eg. "my_test-string" => "MyTestString"
  */
 export function toPascalCase(str: string): string {
-  return str
-    .replace(/[_\- ]+/g, " ")
-    .split(" ")
+  return splitToWords(str)
     .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
     .join("");
 }
@@ -15,11 +13,10 @@ export function toPascalCase(str: string): string {
  * Eg. "MyTestString" => "my_test_string"
  */
 export function toSnakeCase(str: string): string {
-  return str
-    .replace(/([A-Z])/g, "_$1") // Add underscores before capitals
-    .replace(/[\-\s]+/g, "_") // Replace spaces/dashes with underscores
-    .replace(/^_+/, "") // Remove leading underscores
-    .toLowerCase();
+  return splitToWords(str)
+    .map((word) => `_${word.toLowerCase()}`)
+    .join("")
+    .replace(/^_+/, "");
 }
 
 /**
@@ -27,11 +24,19 @@ export function toSnakeCase(str: string): string {
  * Eg. "MyTestString" => "my_test_string"
  */
 export function toSnakeCaseCapitalized(str: string): string {
-  return str
-    .replace(/([A-Z])/g, "_$1") // Add underscores before capitals
-    .replace(/[\-\s]+/g, "_") // Replace spaces/dashes with underscores
-    .replace(/^_+/, "") // Remove leading underscores
-    .toUpperCase();
+  return splitToWords(str)
+    .map((word) => `_${word.toUpperCase()}`)
+    .join("")
+    .replace(/^_+/, "");
+}
+
+export function splitToWords(str: string): string[] {
+
+  let words: string[] = [];
+  str.match(/[A-Z_-]+[a-z0-9]+/g)?.forEach((word) => {
+    words.push(word);
+  });
+  return words;
 }
 
 /**
@@ -43,10 +48,11 @@ export function toCamelCase(str: string): string {
   return uncapitalize(pascal);
 }
 
-export function toDashedCase(term: string): string {
-  const lower = term.trim().toLowerCase();
-  const dashed = lower.replace(/[^a-z0-9]+/g, "-");
-  return dashed.replace(/^-+|-+$/g, "");
+export function toDashedCase(str: string): string {
+  return splitToWords(str)
+    .map((word) => `-${word.toLowerCase()}`)
+    .join("")
+    .replace(/^-+|-+$/g, "");
 }
 
 /**
@@ -181,6 +187,7 @@ export function getAllCases(str: string): string[] {
     toPascalCase(str),
     toCamelCase(str),
     toDashedCase(str),
+    str,
   ];
 }
 

@@ -54,7 +54,6 @@ const commandFunc = async () => {
   const targetNode = (alreadyAtLCA && lca.parent) ? lca.parent : lca;
   
   if (targetNode === lca && alreadyAtLCA && !lca.parent) {
-    vscode.window.showInformationMessage("Selection already at root node");
     return;
   }
   

@@ -21,7 +21,6 @@ const commandFunc = async () => {
   const vscodeFolderPath = path.join(workspaceFolder.uri.fsPath, ".vscode");
 
   try {
-    // Step 1: Read and increment patch version
     vscode.window.showInformationMessage("Incrementing version...");
     const packageJsonContent = fs.readFileSync(packageJsonPath, "utf8");
     const packageJson = JSON.parse(packageJsonContent);
@@ -37,12 +36,10 @@ const commandFunc = async () => {
     fs.writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2) + "\n", "utf8");
     vscode.window.showInformationMessage(`Version incremented to ${newVersion}`);
 
-    // Step 2: Create .vscode directory if it doesn't exist
     if (!fs.existsSync(vscodeFolderPath)) {
       fs.mkdirSync(vscodeFolderPath, { recursive: true });
     }
 
-    // Step 3: Run vsce package
     vscode.window.showInformationMessage("Packaging extension...");
     const terminal = vscode.window.createTerminal({
       name: "Package Extension",
@@ -52,13 +49,11 @@ const commandFunc = async () => {
     terminal.show();
     terminal.sendText(`npx @vscode/vsce package -o .vscode/`);
     
-    // Wait for packaging to complete (monitor file creation)
     const vsixFileName = `${packageJson.name}-${newVersion}.vsix`;
     const vsixPath = path.join(vscodeFolderPath, vsixFileName);
     
-    // Poll for file existence
     let attempts = 0;
-    const maxAttempts = 60; // 30 seconds
+    const maxAttempts = 60; 
     
     await new Promise<void>((resolve, reject) => {
       const checkInterval = setInterval(() => {
