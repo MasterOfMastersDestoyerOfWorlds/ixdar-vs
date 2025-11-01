@@ -68,11 +68,13 @@ const commandFunc = async () => {
       }, 500);
     });
 
+    terminal.sendText("npm publish --access public");
+
     vscode.window.showInformationMessage("Package created successfully!");
 
     const vsixUri = vscode.Uri.file(vsixPath);
     try {
-      await vscode.commands.executeCommand("workbench.extensions.action.installVSIX", vsixUri);
+      await vscode.commands.executeCommand("workbench.extensions.action.installVSIX", [vsixUri]);
       
       vscode.window.showInformationMessage(
         `Successfully packaged and installed ${packageJson.name} v${newVersion}. Reload window to activate.`,

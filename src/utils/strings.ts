@@ -228,6 +228,14 @@ export function extensionName(): string {
   return "ixdar-vs";
 }
 
+export function normalizeTsPath(tsPath: string): string {
+  return tsPath.replace(/\\/g, "/");
+}
+
+export function stripLeadingDot(p: string): string {
+  return p.startsWith("./") ? p.slice(2) : p;
+}
+
 export function extensionCommandName(commandName: string): string {
   return `${extensionName()}.${commandName}`;
 }

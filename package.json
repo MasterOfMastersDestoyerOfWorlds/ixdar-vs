@@ -5,7 +5,7 @@
   "version": "0.0.17",
   "repository": {
     "type": "git",
-    "url": "https://github.com/MasterOfMastersDestoyerOfWorlds/ixdar-vs"
+    "url": "git+https://github.com/MasterOfMastersDestoyerOfWorlds/ixdar-vs.git"
   },
   "engines": {
     "vscode": "^1.97.0"

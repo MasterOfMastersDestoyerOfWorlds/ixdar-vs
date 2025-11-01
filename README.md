@@ -26,6 +26,10 @@ Available in Markdown files only. This command:
 
 Perfect for creating rich, interactive documentation with automatic term definitions.
 
+### Template Workspace
+
+- `IX: Make Template From File` now scaffolds a `.ix/` workspace containing a `tsconfig.json` that extends the project configuration (including the `@/` path aliases) and a `package.json` that depends on the published `ixdar-vs` npm package. Templates created in `.ix/` can immediately import project utilities or package exports without extra configuration.
+
 ### MCP Server Integration
 
 This extension exposes all its commands via the Model Context Protocol, enabling AI assistants to:
