@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tree-sitter Inspector</title>
+  <style>
+    body {
+      font-family: var(--vscode-font-family);
+      color: var(--vscode-foreground);
+      background-color: var(--vscode-editor-background);
+      padding: 20px;
+    }
+    h1 {
+      font-size: 1.5em;
+      margin-bottom: 20px;
+    }
+    .section {
+      margin-bottom: 20px;
+    }
+    label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: bold;
+    }
+    input[type="text"] {
+      width: 100%;
+      padding: 8px;
+      font-family: var(--vscode-editor-font-family);
+      font-size: var(--vscode-editor-font-size);
+      background-color: var(--vscode-input-background);
+      color: var(--vscode-input-foreground);
+      border: 1px solid var(--vscode-input-border);
+      border-radius: 2px;
+    }
+    input[type="text"]:focus {
+      outline: 1px solid var(--vscode-focusBorder);
+    }
+    .status {
+      margin-top: 10px;
+      padding: 10px;
+      border-radius: 4px;
+    }
+    .status.success {
+      background-color: var(--vscode-testing-iconPassed);
+      color: var(--vscode-editor-background);
+    }
+    .status.error {
+      background-color: var(--vscode-inputValidation-errorBackground);
+      border: 1px solid var(--vscode-inputValidation-errorBorder);
+      color: var(--vscode-inputValidation-errorForeground);
+    }
+    .help {
+      margin-top: 20px;
+      padding: 15px;
+      background-color: var(--vscode-textBlockQuote-background);
+      border-left: 4px solid var(--vscode-textBlockQuote-border);
+    }
+    .help h3 {
+      margin-top: 0;
+      font-size: 1.1em;
+    }
+    code {
+      background-color: var(--vscode-textCodeBlock-background);
+      padding: 2px 4px;
+      border-radius: 2px;
+      font-family: var(--vscode-editor-font-family);
+    }
+    pre {
+      background-color: var(--vscode-textCodeBlock-background);
+      padding: 10px;
+      border-radius: 4px;
+      overflow-x: auto;
+    }
+  </style>
+</head>
+<body>
+  <h1>🌳 Tree-sitter Inspector</h1>
+  
+  <div class="section">
+    <p><strong>All tokens are highlighted.</strong> Hover over any token in the editor to see its tree-sitter type.</p>
+  </div>
+
+  <div class="section">
+    <label for="queryInput">Tree-sitter Query:</label>
+    <input 
+      type="text" 
+      id="queryInput" 
+      placeholder="(function_declaration name: (identifier) @name)"
+    />
+    <div id="status"></div>
+  </div>
+
+  <div class="help">
+    <h3>📖 Query Examples</h3>
+    <ul>
+      <li><code>(function_declaration)</code> - All function declarations</li>
+      <li><code>(identifier) @name</code> - All identifiers with capture</li>
+      <li><code>(function_declaration name: (identifier) @func_name)</code> - Function names</li>
+      <li><code>(call_expression function: (identifier) @fn)</code> - Function calls</li>
+      <li><code>[(string) (number)] @literal</code> - Strings or numbers</li>
+    </ul>
+    <p><strong>Tip:</strong> Query matches will be highlighted with a bright border in the editor.</p>
+  </div>
+
+  <script>
+    const vscode = acquireVsCodeApi();
+    const queryInput = document.getElementById('queryInput');
+    const statusDiv = document.getElementById('status');
+
+    let debounceTimer;
+
+    queryInput.addEventListener('input', () => {
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => {
+        const query = queryInput.value;
+        vscode.postMessage({
+          command: 'query',
+          query: query
+        });
+      }, 300);
+    });
+
+    window.addEventListener('message', event => {
+      const message = event.data;
+      switch (message.command) {
+        case 'queryResult':
+          if (message.error) {
+            statusDiv.className = 'status error';
+            statusDiv.textContent = `❌ Error: ${message.error}`;
+          } else if (message.matchCount > 0) {
+            statusDiv.className = 'status success';
+            statusDiv.textContent = `✓ Found ${message.matchCount} match${message.matchCount !== 1 ? 'es' : ''}`;
+          } else {
+            statusDiv.className = 'status';
+            statusDiv.textContent = '';
+          }
+          break;
+      }
+    });
+  </script>
+</body>
+</html>

@@ -6,6 +6,7 @@ import {
 } from "@/types/command";
 import * as strings from "@/utils/strings";
 import { CommandRegistry, RegisterCommand } from "@/utils/commandRegistry";
+import * as mcp from "@/utils/mcp";
 
 /**
  * ixCommand: In-memory command runner that allows executing any registered command
@@ -16,7 +17,7 @@ const languages = undefined;
 const repoName = undefined;
 const commandFunc = async () => {
   const registry = CommandRegistry.getInstance();
-  const allCommands = registry.getAll();
+  const allCommands = registry.getAllMcpCommands();
 
   if (allCommands.length === 0) {
     vscode.window.showWarningMessage("No commands are registered.");
@@ -29,7 +30,7 @@ const commandFunc = async () => {
 
   const items: CommandQuickPickItem[] = allCommands.map((cmd) => ({
     label: cmd.vscodeCommand.id,
-    description: cmd.mcp.tool.description,
+    description: cmd.description,
     detail: `Category: ${cmd.meta.category}${cmd.meta.languages ? ` | Languages: ${cmd.meta.languages.join(", ")}` : ""}`,
     commandModule: cmd,
   }));
@@ -59,79 +60,35 @@ const commandFunc = async () => {
 const mcpFunc = async (args: any): Promise<McpResult> => {
   try {
     const commandName = args.commandName;
-
-    if (!commandName) {
-      return {
-        content: [
-          {
-            type: "text",
-            text: JSON.stringify({ error: "commandName is required" }),
-          },
-        ],
-        isError: true,
-      };
-    }
-
     const registry = CommandRegistry.getInstance();
-    const allCommands = registry.getAll();
+    const allCommands = registry.getAllMcpCommands();
 
     const targetCommand = allCommands.find(
       (cmd) =>
         cmd.vscodeCommand.id === commandName ||
         cmd.vscodeCommand.id.endsWith(`.${commandName}`) ||
-        cmd.mcp.tool.name === commandName
+        cmd.name === commandName
     );
 
     if (!targetCommand) {
       const availableCommands = allCommands.map((cmd) => ({
         id: cmd.vscodeCommand.id,
-        name: cmd.mcp.tool.name,
-        description: cmd.mcp.tool.description,
+        name: cmd.name,
+        description: cmd.mcp?.tool.description,
       }));
 
-      return {
-        content: [
-          {
-            type: "text",
-            text: JSON.stringify(
-              {
-                error: `Command '${commandName}' not found`,
-                availableCommands,
-              },
-              null,
-              2
-            ),
-          },
-        ],
-        isError: true,
-      };
+      return mcp.returnMcpError({ error: `Command '${commandName}' not found`, availableCommands });
     }
 
-    const result = await targetCommand.mcp.call(args.args || {});
+    const result = await targetCommand.mcp?.call(args.args || {});
 
-    return {
-      content: [
-        {
-          type: "text",
-          text: JSON.stringify(
-            {
-              success: true,
-              executedCommand: targetCommand.vscodeCommand.id,
-              result,
-            },
-            null,
-            2
-          ),
-        },
-      ],
-    };
+    return mcp.returnMcpResult({
+      success: true,
+      executedCommand: targetCommand.vscodeCommand.id,
+      result,
+    });
   } catch (error: any) {
-    return {
-      content: [
-        { type: "text", text: JSON.stringify({ error: error.message }) },
-      ],
-      isError: true,
-    };
+    return mcp.returnMcpResult({ error: error.message });
   }
 };
 
@@ -158,9 +115,9 @@ const command: CommandModule = new CommandModuleImpl(
   commandName,
   languages,
   commandFunc,
-  mcpFunc,
   description,
-  inputSchema
+  inputSchema,
+  mcpFunc
 );
 
 @RegisterCommand

@@ -44,6 +44,13 @@ export class CommandRegistry {
   }
 
   /**
+   * Get all registered commands
+   */
+  getAllMcpCommands(): CommandModule[] {
+    return [...this.commands.filter((cmd) => cmd.mcp !== undefined)];
+  }
+
+  /**
    * Clear all registered commands (useful for testing)
    */
   clear(): void {
@@ -54,30 +61,33 @@ export class CommandRegistry {
 /**
  * Decorator to automatically register a command module with the registry.
  * Usage: Apply to a class that wraps the command export
- * 
+ *
  * @example
  * @RegisterCommand
  * class Cmd {
  *   static default = command;
  * }
  */
-export function RegisterCommand<T extends { new(...args: any[]): any }>(constructor: T): T {
-  // Access the static default property which holds the command
+export function RegisterCommand<T extends { new (...args: any[]): any }>(
+  constructor: T
+): T {
   const cmd = (constructor as any).default;
-  
+
   if (cmd) {
     CommandRegistry.getInstance().register(cmd);
   } else {
-    console.warn("@RegisterCommand decorator: command not found on class.default");
+    console.warn(
+      "@RegisterCommand decorator: command not found on class.default"
+    );
   }
-  
+
   return constructor;
 }
 
 /**
  * Helper function to register and return a command module.
  * Simpler alternative to decorator pattern.
- * 
+ *
  * @example
  * export default registerCommand(command);
  */
@@ -85,4 +95,3 @@ export function registerCommand(command: CommandModule): CommandModule {
   CommandRegistry.getInstance().register(command);
   return command;
 }
-

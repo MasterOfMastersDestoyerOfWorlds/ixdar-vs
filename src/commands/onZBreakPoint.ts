@@ -39,9 +39,9 @@ const command: CommandModule = new CommandModuleImpl(
   commandName,
   languages,
   commandFunc,
-  mcpFunc,
   description,
-  inputSchema
+  inputSchema,
+  mcpFunc
 );
 
 @RegisterCommand

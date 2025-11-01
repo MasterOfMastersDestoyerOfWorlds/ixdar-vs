@@ -34,7 +34,7 @@ const commandFunc = async () => {
       placeHolder: "e.g., const\\s+(\\w+)",
       validateInput: (text: string): string | null => {
         if (!text) {
-          editor.setDecorations(matchDecorationType, []);
+          decor.clearDecorations(editor, matchDecorationType);
           return null;
         }
         try {
@@ -47,24 +47,24 @@ const commandFunc = async () => {
             if (match.index === regex.lastIndex) {
               regex.lastIndex++;
             }
-
-            const startPos = document.positionAt(match.index);
-            const endPos = document.positionAt(match.index + match[0].length);
-            ranges.push(new vscode.Range(startPos, endPos));
+            ranges.push(
+              new vscode.Range(
+                document.positionAt(match.index),
+                document.positionAt(match.index + match[0].length)
+              )
+            );
           }
 
           editor.setDecorations(matchDecorationType, ranges);
 
           return null;
         } catch (e) {
-          editor.setDecorations(matchDecorationType, []);
+          decor.clearDecorations(editor, matchDecorationType);
           return "Invalid regular expression.";
         }
       },
     });
-
-    editor.setDecorations(matchDecorationType, []);
-    matchDecorationType.dispose();
+    decor.clearDecorations(editor, matchDecorationType);
 
     if (regexString === undefined || !regexString) {
       vscode.window.showInformationMessage("No regular expression provided.");
@@ -86,15 +86,13 @@ const commandFunc = async () => {
     const textToCopy = matchedTexts.join("\n");
     await vscode.env.clipboard.writeText(textToCopy);
 
-    const message = `${matchedTexts.length} match${matchedTexts.length > 1 ? "es" : ""} selected and copied to clipboard.`;
-    vscode.window.showInformationMessage(message);
+    vscode.window.showInformationMessage(
+      `${matchedTexts.length} match${matchedTexts.length > 1 ? "es" : ""} selected and copied to clipboard.`
+    );
   } catch (e) {
-    editor.setDecorations(matchDecorationType, []);
-    matchDecorationType.dispose();
-
-    const errorMessage = e instanceof Error ? e.message : String(e);
+    decor.clearDecorations(editor, matchDecorationType);
     vscode.window.showErrorMessage(
-      `An unexpected error occurred: ${errorMessage}`
+      `An unexpected error occurred: ${e instanceof Error ? e.message : String(e)}`
     );
   }
 };
@@ -116,9 +114,9 @@ const command: CommandModule = new CommandModuleImpl(
   commandName,
   languages,
   commandFunc,
-  mcpFunc,
   description,
-  inputSchema
+  inputSchema,
+  mcpFunc
 );
 
 @RegisterCommand

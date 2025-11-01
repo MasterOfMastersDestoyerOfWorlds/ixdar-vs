@@ -16,3 +16,8 @@ export function tokenDecor(): vscode.TextEditorDecorationType {
     borderColor: new vscode.ThemeColor("editorBracketMatch.border"),
   });
 }
+
+export function clearDecorations(editor: vscode.TextEditor, matchDecorationType: vscode.TextEditorDecorationType) {
+  editor.setDecorations(matchDecorationType, []);
+  matchDecorationType.dispose();
+}

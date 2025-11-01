@@ -44,9 +44,9 @@ const command: CommandModule = new CommandModuleImpl(
   commandName,
   languages,
   commandFunc,
-  mcpFunc,
   description,
-  inputSchema
+  inputSchema,
+  mcpFunc
 );
 
 @RegisterCommand
@@ -65,7 +65,7 @@ const commandFunc = async () => {
   const newCommandName = await vscode.window.showInputBox({
     prompt: "Enter a name for your new command (e.g. myNewCommand):",
     validateInput: (value) => {
-      if (!value || !/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(value)) {
+      if (!value || !strings.isValidIdentifier(value)) {
         return "Please enter a valid TypeScript identifier.";
       }
       return null;
@@ -233,7 +233,7 @@ const mcpFunc = async (args: any): Promise<McpResult> => {
       };
     }
 
-    if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(newCommandName)) {
+    if (!strings.isValidIdentifier(newCommandName)) {
       return {
         content: [
           {
@@ -427,9 +427,9 @@ const command: CommandModule = new CommandModuleImpl(
   commandName,
   languages,
   commandFunc,
-  mcpFunc,
   description,
-  inputSchema
+  inputSchema,
+  mcpFunc
 );
 
 @RegisterCommand

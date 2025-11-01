@@ -13,10 +13,12 @@ interface AIConfig {
 function getAIConfig(): AIConfig {
   const config = vscode.workspace.getConfiguration("ixdar-vs.ai");
   return {
-    provider: config.get<"gemini" | "openai" | "anthropic">("provider", "gemini"),
+    provider: config.get<"gemini" | "openai" | "anthropic">(
+      "provider",
+      "gemini"
+    ),
     model: config.get<string>(
       "model",
-      // Default to gemini-2.0-flash-exp but provide a list of commonly used models including gemini-2.5-pro
       [
         "gemini-2.5-pro",
         "gemini-2.0-flash-exp",
@@ -27,7 +29,7 @@ function getAIConfig(): AIConfig {
         "gpt-4o",
         "claude-3-haiku-20240307",
         "claude-3-sonnet-20240229",
-        "claude-3-opus-20240229"
+        "claude-3-opus-20240229",
       ][0]
     ),
     apiKey: config.get<string>("apiKey", ""),
@@ -84,7 +86,11 @@ function httpsRequest(
 /**
  * Call Gemini API
  */
-async function callGemini(prompt: string, apiKey: string, model: string): Promise<string> {
+async function callGemini(
+  prompt: string,
+  apiKey: string,
+  model: string
+): Promise<string> {
   const body = JSON.stringify({
     contents: [
       {
@@ -115,7 +121,11 @@ async function callGemini(prompt: string, apiKey: string, model: string): Promis
 /**
  * Call OpenAI API
  */
-async function callOpenAI(prompt: string, apiKey: string, model: string): Promise<string> {
+async function callOpenAI(
+  prompt: string,
+  apiKey: string,
+  model: string
+): Promise<string> {
   const body = JSON.stringify({
     model,
     messages: [
@@ -146,7 +156,11 @@ async function callOpenAI(prompt: string, apiKey: string, model: string): Promis
 /**
  * Call Anthropic API
  */
-async function callAnthropic(prompt: string, apiKey: string, model: string): Promise<string> {
+async function callAnthropic(
+  prompt: string,
+  apiKey: string,
+  model: string
+): Promise<string> {
   const body = JSON.stringify({
     model,
     max_tokens: 4096,
@@ -204,12 +218,9 @@ async function callAI(prompt: string): Promise<string> {
  * Clean code response (remove markdown formatting if present)
  */
 function cleanCodeResponse(response: string): string {
-  // Remove markdown code blocks
   let cleaned = response.trim();
   if (cleaned.startsWith("```")) {
-    // Remove opening code fence
     cleaned = cleaned.replace(/^```[\w]*\n/, "");
-    // Remove closing code fence
     cleaned = cleaned.replace(/\n```$/, "");
   }
   return cleaned.trim();
@@ -218,7 +229,9 @@ function cleanCodeResponse(response: string): string {
 /**
  * Generate low-level command implementation code
  */
-export async function generateLowLevelCode(description: string): Promise<string> {
+export async function generateLowLevelCode(
+  description: string
+): Promise<string> {
   const prompt = `Generate TypeScript code for a VS Code command function body that does the following:
 
 ${description}
@@ -275,4 +288,3 @@ if (cmd1) {
   const response = await callAI(prompt);
   return cleanCodeResponse(response);
 }
-

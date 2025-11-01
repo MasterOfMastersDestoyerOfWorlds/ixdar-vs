@@ -213,6 +213,10 @@ export function lineContains(line: string, cases: string[]): boolean {
   return false;
 }
 
+export function isValidIdentifier(str: string): boolean {
+  return /^[a-zA-Z_][a-zA-Z0-9_]*$/.test(str);
+}
+
 export function extensionName(): string {
   return "ixdar-vs";
 }

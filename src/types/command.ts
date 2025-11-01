@@ -3,10 +3,15 @@ import * as vscode from "vscode";
 import * as strings from "../utils/strings";
 import { runWithAvailabilityGuard } from "../utils/availability";
 import type Parser from "tree-sitter";
+
+export interface InputSchema {
+  type: string;
+  properties?: { [key: string]: { type: string; description: string } };
+  required?: string[];
+}
 export interface McpToolDefinition {
-  name: string;
   description: string;
-  inputSchema: any;
+  inputSchema: InputSchema;
 }
 
 export interface McpResult {
@@ -21,26 +26,32 @@ export interface CommandAvailabilityMeta {
 }
 
 export interface CommandModule {
+  name: string;
+  description: string;
   meta: CommandAvailabilityMeta;
   vscodeCommand: {
     id: string;
     register: (context: ExtensionContext) => void;
   };
   mcp: {
+    enabled: boolean;
     tool: McpToolDefinition;
-    call: (args: any) => Promise<McpResult>;
+    call: (args: any) => Promise<McpResult> | undefined;
   };
 }
 
 export class CommandModuleImpl implements CommandModule {
   public meta: CommandAvailabilityMeta;
+  public name: string;
+  public description: string;
   public vscodeCommand: {
     id: string;
     register: (context: ExtensionContext) => void;
   };
   public mcp: {
+    enabled: boolean;
     tool: McpToolDefinition;
-    call: (args: any) => Promise<McpResult>;
+    call: (args: any) => Promise<McpResult> | undefined;
   };
 
   /**
@@ -51,10 +62,12 @@ export class CommandModuleImpl implements CommandModule {
     commandName: string,
     languages: string[] | undefined,
     commandFunc: (parseTree?: Parser.Tree) => Promise<void> | void,
-	mcpFunc: (args: any) => Promise<McpResult>,
     description: string,
-    inputSchema: any
+    inputSchema: InputSchema,
+    mcpFunc?: (args: any) => Promise<McpResult>
   ) {
+    this.name = commandName;
+    this.description = description;
     this.meta = {
       category: repoName ? "repo" : "general",
       allowedRepoNames: repoName ? [repoName] : [],
@@ -75,7 +88,7 @@ export class CommandModuleImpl implements CommandModule {
               this.meta,
               editor.document.uri,
               (msg) => vscode.window.showWarningMessage(msg),
-              () => commandFunc() // Call without parse tree by default, commands can get it themselves
+              () => commandFunc()
             );
           }
         );
@@ -83,12 +96,23 @@ export class CommandModuleImpl implements CommandModule {
       },
     };
     this.mcp = {
+      enabled: mcpFunc !== undefined,
       tool: {
-        name: strings.toSnakeCase(commandName),
         description: description,
         inputSchema: inputSchema,
       },
-      call: mcpFunc,
+      call: mcpFunc || (async () => ({ 
+        content: [{ type: "text", text: "MCP not enabled for this command" }],
+        isError: true 
+      })),
     };
+  }
+  static isValidRequest(args: any, inputSchema: InputSchema): {valid: boolean, errors: string[]} {
+    for (const property in inputSchema.properties) {
+      if (!args[property]) {
+        return {valid: false, errors: [`Property ${property} is required`]};
+      }
+    }
+    return {valid: true, errors: []};
   }
 }

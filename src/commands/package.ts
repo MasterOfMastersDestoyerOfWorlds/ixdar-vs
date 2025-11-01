@@ -77,7 +77,7 @@ const commandFunc = async () => {
 
     const vsixUri = vscode.Uri.file(vsixPath);
     try {
-      await vscode.commands.executeCommand("workbench.extensions.action.installVsix", vsixUri);
+      await vscode.commands.executeCommand("workbench.extensions.action.installVSIX", vsixUri);
       
       vscode.window.showInformationMessage(
         `Successfully packaged and installed ${packageJson.name} v${newVersion}. Reload window to activate.`,
@@ -88,8 +88,8 @@ const commandFunc = async () => {
         }
       });
     } catch (installError: any) {
-      vscode.window.showInformationMessage(
-        `Package created at ${vsixPath}. Please install manually or reload window.`,
+      vscode.window.showErrorMessage(
+        `Package created at ${vsixPath}. Error installing: ${installError.message}`,
         "Open Folder",
         "Reload Window"
       ).then(selection => {
@@ -120,9 +120,9 @@ const command: CommandModule = new CommandModuleImpl(
   commandName,
   languages,
   commandFunc,
-  mcpFunc,
   description,
-  inputSchema
+  inputSchema,
+  mcpFunc
 );
 
 @RegisterCommand

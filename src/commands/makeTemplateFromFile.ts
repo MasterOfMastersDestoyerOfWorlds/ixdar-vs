@@ -17,7 +17,6 @@ const commandFunc = async () => {
     return;
   }
 
-  // Ask for file path to use as template
   const fileUri = await vscode.window.showOpenDialog({
     canSelectMany: false,
     openLabel: "Select Template File",
@@ -30,11 +29,9 @@ const commandFunc = async () => {
     return;
   }
 
-  // Read the file content
   const fileContent = await vscode.workspace.fs.readFile(fileUri[0]);
   let content = Buffer.from(fileContent).toString('utf8');
 
-  // Ask for target variables (comma-separated)
   const targetsInput = await vscode.window.showInputBox({
     prompt: "Enter target variable names (comma-separated, e.g., makeTemplateFromFile, myVariable)",
     placeHolder: "target1, target2, target3"
@@ -51,45 +48,36 @@ const commandFunc = async () => {
     return;
   }
 
-  // For each target, replace all case variations with template literals
   for (let i = 0; i < targets.length; i++) {
     const target = targets[i];
     const targetIndex = i;
     
-    // Get all case variations of this target
     const caseVariations = strings.getAllCases(target);
     
-    // Create a map of each case variation to its case type
     const caseMap = new Map<string, strings.StringCases>();
     caseVariations.forEach(variation => {
       const caseType = strings.getStringCase(variation);
       caseMap.set(variation, caseType);
     });
 
-    // Sort variations by length (longest first) to avoid partial replacements
     const sortedVariations = Array.from(caseMap.keys()).sort((a, b) => b.length - a.length);
 
-    // Replace each case variation with appropriate template literal
     for (const variation of sortedVariations) {
       const caseType = caseMap.get(variation)!;
       const functionName = strings.getFunctionForCase(caseType);
       
       if (functionName) {
-        // Create template literal: ${functionName(arg0)}
         const replacement = `\${${functionName}(arg${targetIndex})}`;
         
-        // Use word boundary aware replacement
         const regex = new RegExp(`\\b${escapeRegex(variation)}\\b`, 'g');
         content = content.replace(regex, replacement);
       }
     }
   }
 
-  // Create the template function wrapper
   const argsList = targets.map((_, i) => `arg${i}`).join(', ');
   const templateFunction = `function makeTemplate(${argsList}: string) {\n  return \`${content}\`;\n}`;
 
-  // Insert at cursor position
   editor.edit(editBuilder => {
     editBuilder.insert(editor.selection.active, templateFunction);
   });
@@ -97,7 +85,6 @@ const commandFunc = async () => {
   vscode.window.showInformationMessage(`Template function created with ${targets.length} target(s).`);
 };
 
-// Helper function to escape regex special characters
 function escapeRegex(str: string): string {
   return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
@@ -116,7 +103,7 @@ const inputSchema = {
       description: "Path to the file to use as template"
     },
     replaceTargets: {
-      type: ["string", "array"],
+      type: "array",
       description: "Target variable names to replace (comma-separated string or array)"
     }
   },
@@ -129,9 +116,9 @@ const command: CommandModule = new CommandModuleImpl(
   commandName,
   languages,
   commandFunc,
-  mcpFunc,
   description,
-  inputSchema
+  inputSchema,
+  mcpFunc
 );
 
 @RegisterCommand

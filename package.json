@@ -2,7 +2,7 @@
   "name": "ixdar-vs",
   "displayName": "ixdar-vs",
   "description": "Higher level templating and diff automation",
-  "version": "0.0.11",
+  "version": "0.0.17",
   "repository": {
     "type": "git",
     "url": "https://github.com/MasterOfMastersDestoyerOfWorlds/ixdar-vs"
@@ -114,6 +114,10 @@
       {
         "command": "ixdar-vs.treeSitterInspector",
         "title": "IX: Tree-sitter Inspector"
+      },
+      {
+        "command": "ixdar-vs.growSelection",
+        "title": "IX: Grow Selection"
       }
     ],
     "keybindings": [
@@ -131,6 +135,11 @@
         "command": "ixdar-vs.insertEssayImageShortcode",
         "key": "ctrl+shift+i",
         "when": "editorTextFocus && editorLangId == markdown"
+      },
+      {
+        "command": "ixdar-vs.growSelection",
+        "key": "ctrl+alt+up",
+        "when": "editorTextFocus"
       }
     ]
   },
@@ -160,6 +169,7 @@
     "esbuild": "^0.25.11",
     "eslint": "^9.19.0",
     "jest": "^30.2.0",
+    "raw-loader": "^4.0.2",
     "ts-jest": "^29.1.0",
     "ts-loader": "^9.5.4",
     "tsconfig-paths-webpack-plugin": "^4.2.0",

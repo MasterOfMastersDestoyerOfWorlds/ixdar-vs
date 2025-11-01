@@ -1,6 +1,6 @@
 import * as vscode from "vscode";
 import * as http from "http";
-import type { CommandModule } from "@/types/command";
+import { CommandModuleImpl, type CommandModule } from "@/types/command";
 import {
   getActiveRepoName,
   getActiveLanguageId,
@@ -20,13 +20,11 @@ export async function activate(context: vscode.ExtensionContext) {
   console.log('Congratulations, your extension "ixdar-vs" mcp is now active!');
 
   // Auto-discover and import all command modules
-  const commandContext = require.context('./commands', false, /\.ts$/);
+  const commandContext = require.context("./commands", true, /\.ts$/);
   commandContext.keys().forEach((key: string) => {
-    if (key !== './index.ts') {
-      commandContext(key);
-    }
+    commandContext(key);
   });
-  const { CommandRegistry } = await import('./utils/commandRegistry');
+  const { CommandRegistry } = await import("./utils/commandRegistry");
 
   const commandModules = CommandRegistry.getInstance().getAll();
   console.log(`Loaded ${commandModules.length} command modules from registry`);
@@ -91,24 +89,16 @@ export async function activate(context: vscode.ExtensionContext) {
 
   const dynamicTools = new Map<string, CommandModule>();
   for (const cmd of commandModules) {
-    dynamicTools.set(cmd.mcp.tool.name, cmd);
+    dynamicTools.set(cmd.name, cmd);
   }
-
-  const initialRepoName = await getActiveRepoName();
-  const initialLangId = getActiveLanguageId();
-  const initialDynamic = Array.from(dynamicTools.values())
-    .filter((m) =>
-      isAvailableForListing(m.meta, initialRepoName, initialLangId)
-    )
-    .map((m) => m.mcp.tool);
-  console.log("dynamic2", initialDynamic);
 
   mcp.setRequestHandler(ListToolsRequestSchema, async () => {
     const repoName = await getActiveRepoName();
     const langId = getActiveLanguageId();
     const dynamic = Array.from(dynamicTools.values())
       .filter((m) => isAvailableForListing(m.meta, repoName, langId))
-      .map((m) => m.mcp.tool);
+
+      .map((m) => m.mcp?.tool);
     console.log("dynamic", dynamic);
     const tools = [
       {
@@ -202,7 +192,7 @@ export async function activate(context: vscode.ExtensionContext) {
           default: {
             const toolName = request.params.name as string;
             const mod = dynamicTools.get(toolName);
-            if (!mod) {
+            if (!mod || !mod.mcp) {
               return {
                 content: [
                   {
@@ -225,6 +215,23 @@ export async function activate(context: vscode.ExtensionContext) {
                     text: JSON.stringify({
                       error:
                         "Tool not available in this repository or language",
+                    }),
+                  },
+                ],
+                isError: true,
+              };
+            }
+            const validation = CommandModuleImpl.isValidRequest(
+              request.params.arguments,
+              mod.mcp.tool.inputSchema
+            );
+            if (!validation.valid) {
+              return {
+                content: [
+                  {
+                    type: "text",
+                    text: JSON.stringify({
+                      error: validation.errors.join(", "),
                     }),
                   },
                 ],
