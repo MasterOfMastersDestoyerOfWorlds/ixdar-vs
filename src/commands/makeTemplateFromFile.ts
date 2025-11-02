@@ -8,6 +8,7 @@ import * as strings from "@/utils/strings";
 import * as mcp from "@/utils/mcp";
 import { RegisterCommand } from "@/utils/commandRegistry";
 import * as fs from "@/utils/fs";
+import * as importer from "@/utils/importer";
 
 /**
  * makeTemplateFromFile: Make a template function from a file by replacing target variables with case-specific template literals.
@@ -65,7 +66,7 @@ const commandFunc = async () => {
       const functionName = strings.getFunctionForCase(caseType);
 
       if (functionName) {
-        const replacement = `\${${functionName}(arg${targetIndex})}`;
+        const replacement = `\${strings.${functionName}(arg${targetIndex})}`;
 
         const regex = new RegExp(`\\b${escapeRegex(variation)}\\b`, "g");
         content = content.replace(regex, replacement);
@@ -74,7 +75,9 @@ const commandFunc = async () => {
   }
 
   const argsList = targets.map((_, i) => `arg${i}`).join(", ");
-  const templateFunction = `function makeTemplate(${argsList}: string) {\n  return \`${content}\`;\n}`;
+  const templateFunction = `
+${importer.getImportString(strings)}';
+  export function makeTemplate(${argsList}: string) {\n  return \`${content}\`;\n}`;
 
   const templateFile = await fs.createTemplateFile(
     templateFunction,

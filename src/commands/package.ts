@@ -67,7 +67,8 @@ const commandFunc = async () => {
         }
       }, 500);
     });
-
+    
+    terminal.sendText(`npx @vscode/vsce package -i .vscode/ixdar-vs-${newVersion}.vsix`);
     terminal.sendText("npm publish --access public");
 
     vscode.window.showInformationMessage("Package created successfully!");

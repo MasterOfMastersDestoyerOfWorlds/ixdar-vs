@@ -3,12 +3,11 @@ const TsconfigPathsPlugin = require("tsconfig-paths-webpack-plugin");
 
 /**@type {import('webpack').Configuration}*/
 const config = {
-  target: "node", // VS Code extensions run in a Node.js context
-  mode: "none", // this leaves the source code as close as possible to the original (when packaging we set this to 'production')
+  target: "node", 
+  mode: "none", 
 
-  entry: "./src/extension.ts", // the entry point of this extension
+  entry: "./src/extension.ts", 
   output: {
-    // the bundle is stored in the 'out' folder (check package.json)
     path: path.resolve(__dirname, "out"),
     filename: "extension.js",
     libraryTarget: "commonjs2",
@@ -16,7 +15,7 @@ const config = {
   },
   devtool: "source-map",
   externals: {
-    vscode: "commonjs vscode", // the vscode-module is created on-the-fly and must be excluded
+    vscode: "commonjs vscode", 
     "tree-sitter": "commonjs tree-sitter",
     "tree-sitter-javascript": "commonjs tree-sitter-javascript",
     "tree-sitter-java": "commonjs tree-sitter-java",
@@ -32,7 +31,6 @@ const config = {
       "commonjs @modelcontextprotocol/sdk/server/streamableHttp.js",
   },
   resolve: {
-    // support reading TypeScript and JavaScript files
     extensions: [".ts", ".js", ".html"],
     plugins: [
       new TsconfigPathsPlugin({
@@ -54,7 +52,7 @@ const config = {
             loader: "ts-loader",
             options: {
               compilerOptions: {
-                module: "esnext", // override tsconfig module for webpack
+                module: "esnext", 
               },
             },
           },

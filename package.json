@@ -2,7 +2,9 @@
   "name": "ixdar-vs",
   "displayName": "ixdar-vs",
   "description": "Higher level templating and diff automation",
-  "version": "0.0.17",
+  "publisher": "KriegEterna",
+  "version": "0.0.21",
+  "icon": "images/favicon.ico",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/MasterOfMastersDestoyerOfWorlds/ixdar-vs.git"

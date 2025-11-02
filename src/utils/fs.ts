@@ -36,24 +36,50 @@ export async function makeIxFolder(
   } catch {
     await vscode.workspace.fs.createDirectory(ixFolder);
   }
-  const [workspacePackage, workspaceTsConfig] = await Promise.all([
-    readJsonFile(vscode.Uri.joinPath(workspaceFolder.uri, "package.json")),
-    readJsonFile(vscode.Uri.joinPath(workspaceFolder.uri, "tsconfig.json")),
-  ]);
+  vscode.window.showInformationMessage("Creating ixdar workspace...");
+  const ixGitIgnoreUri = vscode.Uri.joinPath(ixFolder, ".gitignore");
+  const ixPackageJsonUri = vscode.Uri.joinPath(ixFolder, "package.json");
+  const ixTsConfigUri = vscode.Uri.joinPath(ixFolder, "tsconfig.json");
+
+  const [workspacePackage, workspaceTsConfig, workspaceGitIgnore] =
+    await Promise.all([
+      readJsonFile(ixPackageJsonUri),
+      readJsonFile(ixTsConfigUri),
+      readFile(ixGitIgnoreUri),
+    ]);
 
   await Promise.all([
-    ensureIxPackageJson(ixFolder, workspacePackage),
-    ensureIxTsConfig(ixFolder, workspaceTsConfig),
+    ensureIxPackageJson(ixFolder, ixPackageJsonUri, workspacePackage),
+    ensureIxTsConfig(ixFolder, ixTsConfigUri, workspaceTsConfig),
+    ensureIxGitIgnore(ixFolder, ixGitIgnoreUri, workspaceGitIgnore),
   ]);
+  const terminal = vscode.window.createTerminal({
+    name: "NPM Install",
+    cwd: ixFolder.fsPath,
+  });
+
+  const installComplete = new Promise<void>((resolve) => {
+    const disposable = vscode.window.onDidCloseTerminal((closedTerminal) => {
+      if (closedTerminal === terminal) {
+        disposable.dispose();
+        resolve();
+      }
+    });
+  });
+
+  terminal.show();
+  terminal.sendText("npm i; exit");
+
+  await installComplete;
+
   return ixFolder;
 }
 
 async function ensureIxPackageJson(
   ixFolder: vscode.Uri,
+  ixPackageJsonUri: vscode.Uri,
   workspacePackage: JsonRecord | undefined
 ): Promise<void> {
-  const ixPackageUri = vscode.Uri.joinPath(ixFolder, "package.json");
-
   const workspaceVersion =
     typeof workspacePackage?.version === "string"
       ? workspacePackage.version
@@ -67,17 +93,16 @@ async function ensureIxPackageJson(
   } satisfies JsonRecord;
 
   await vscode.workspace.fs.writeFile(
-    ixPackageUri,
+    ixPackageJsonUri,
     Buffer.from(JSON.stringify(desiredPackage, null, 2) + "\n", "utf8")
   );
 }
 
 async function ensureIxTsConfig(
   ixFolder: vscode.Uri,
+  ixTsConfigUri: vscode.Uri,
   workspaceTsConfig: JsonRecord | undefined
 ): Promise<void> {
-  const ixTsConfigUri = vscode.Uri.joinPath(ixFolder, "tsconfig.json");
-
   const rootHasConfig = Boolean(workspaceTsConfig);
   const compilerOptions =
     (workspaceTsConfig?.compilerOptions as JsonRecord | undefined) ?? {};
@@ -108,11 +133,35 @@ async function ensureIxTsConfig(
   );
 }
 
+async function ensureIxGitIgnore(
+  ixFolder: vscode.Uri,
+  ixGitIgnoreUri: vscode.Uri,
+  workspaceGitIgnore: string | undefined
+): Promise<void> {
+  let desiredGitIgnore = workspaceGitIgnore ?? "";
+  if (!desiredGitIgnore.includes("npm_modules/**")) {
+    desiredGitIgnore += "npm_modules/**\n";
+  }
+  await vscode.workspace.fs.writeFile(
+    ixGitIgnoreUri,
+    Buffer.from(desiredGitIgnore, "utf8")
+  );
+}
+
 async function readJsonFile(uri: vscode.Uri): Promise<JsonRecord | undefined> {
   try {
     const bytes = await vscode.workspace.fs.readFile(uri);
     const text = Buffer.from(bytes).toString("utf8");
     return JSON.parse(text) as JsonRecord;
+  } catch (error) {
+    return undefined;
+  }
+}
+
+async function readFile(uri: vscode.Uri): Promise<string | undefined> {
+  try {
+    const bytes = await vscode.workspace.fs.readFile(uri);
+    return Buffer.from(bytes).toString("utf8");
   } catch (error) {
     return undefined;
   }
@@ -140,4 +189,3 @@ function normalizePathMappings(
     })
   );
 }
-
