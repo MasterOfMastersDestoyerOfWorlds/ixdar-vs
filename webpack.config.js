@@ -1,5 +1,8 @@
 const path = require("path");
 const TsconfigPathsPlugin = require("tsconfig-paths-webpack-plugin");
+const webpack = require("webpack");
+
+const SRC_DIR = path.resolve(__dirname, "src");
 
 /**@type {import('webpack').Configuration}*/
 const config = {
@@ -49,6 +52,9 @@ const config = {
         exclude: /node_modules/,
         use: [
           {
+            loader: path.resolve(__dirname, "src", "webpack", "modulePathLoader.js"),
+          },
+          {
             loader: "ts-loader",
             options: {
               compilerOptions: {
@@ -60,6 +66,7 @@ const config = {
       },
     ],
   },
+  plugins: [],
 };
 
 module.exports = config;

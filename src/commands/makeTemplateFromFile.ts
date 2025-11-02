@@ -76,8 +76,8 @@ const commandFunc = async () => {
 
   const argsList = targets.map((_, i) => `arg${i}`).join(", ");
   const templateFunction = `
-${importer.getImportString(strings)}';
-  export function makeTemplate(${argsList}: string) {\n  return \`${content}\`;\n}`;
+${importer.getImportStatementForModule(strings)}
+export function makeTemplate(${argsList}: string) {\n  return \`${content}\`;\n}`;
 
   const templateFile = await fs.createTemplateFile(
     templateFunction,

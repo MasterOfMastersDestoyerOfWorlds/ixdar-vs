@@ -30,6 +30,18 @@ Perfect for creating rich, interactive documentation with automatic term definit
 
 - `IX: Make Template From File` now scaffolds a `.ix/` workspace containing a `tsconfig.json` that extends the project configuration (including the `@/` path aliases) and a `package.json` that depends on the published `ixdar-vs` npm package. Templates created in `.ix/` can immediately import project utilities or package exports without extra configuration.
 
+### Module Metadata
+
+- Every module compiled from `src/` has a `__modulePath` export injected by a custom webpack loader. You can access it directly or use the `getModulePath` utility:
+
+```typescript
+import * as strings from "@/utils/strings";
+import { getModulePath } from "@/utils/importer";
+
+console.log(strings.__modulePath); // "/utils/strings"
+console.log(getModulePath(strings)); // "/utils/strings"
+```
+
 ### MCP Server Integration
 
 This extension exposes all its commands via the Model Context Protocol, enabling AI assistants to:
