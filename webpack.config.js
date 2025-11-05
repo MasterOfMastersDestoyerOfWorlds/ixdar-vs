@@ -14,7 +14,10 @@ const config = {
     path: path.resolve(__dirname, "out"),
     filename: "extension.js",
     libraryTarget: "commonjs2",
-    devtoolModuleFilenameTemplate: "../[resource-path]",
+    devtoolModuleFilenameTemplate: (info) => {
+      // Use absolute paths for better debugger compatibility on Windows
+      return path.resolve(info.absoluteResourcePath);
+    },
   },
   devtool: "source-map",
   externals: {

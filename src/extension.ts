@@ -15,16 +15,18 @@ import {
 } from "@modelcontextprotocol/sdk/types.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
+import * as fs from "@/utils/fs";
 
 export async function activate(context: vscode.ExtensionContext) {
   console.log('Congratulations, your extension "ixdar-vs" mcp is now active!');
 
-  // Auto-discover and import all command modules
   const commandContext = require.context("./commands", true, /\.ts$/);
   commandContext.keys().forEach((key: string) => {
     commandContext(key);
   });
   const { CommandRegistry } = await import("./utils/commandRegistry");
+
+  await fs.loadWorkspaceCommands();
 
   const commandModules = CommandRegistry.getInstance().getAll();
   console.log(`Loaded ${commandModules.length} command modules from registry`);
