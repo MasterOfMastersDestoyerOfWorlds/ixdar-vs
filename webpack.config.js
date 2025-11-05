@@ -14,10 +14,7 @@ const config = {
     path: path.resolve(__dirname, "out"),
     filename: "extension.js",
     libraryTarget: "commonjs2",
-    devtoolModuleFilenameTemplate: (info) => {
-      // Use absolute paths for better debugger compatibility on Windows
-      return path.resolve(info.absoluteResourcePath);
-    },
+    devtoolModuleFilenameTemplate: "../[resource-path]",
   },
   devtool: "source-map",
   externals: {
@@ -55,15 +52,15 @@ const config = {
         exclude: /node_modules/,
         use: [
           {
-            loader: path.resolve(__dirname, "src", "webpack", "modulePathLoader.js"),
-          },
-          {
             loader: "ts-loader",
             options: {
               compilerOptions: {
                 module: "esnext", 
               },
             },
+          },
+          {
+            loader: path.resolve(__dirname, "src", "webpack", "modulePathLoader.js"),
           },
         ],
       },

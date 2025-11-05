@@ -139,7 +139,7 @@
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",
-    "compile": "webpack --mode production",
+    "compile": "webpack",
     "watch": "webpack --mode none --watch",
     "package": "webpack --mode production",
     "pretest": "npm run compile && npm run lint",

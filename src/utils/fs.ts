@@ -211,7 +211,7 @@ export async function loadWorkspaceCommands(): Promise<void> {
 
   for (const workspaceFolder of workspaceFolders) {
     const ixFolderUri = vscode.Uri.joinPath(workspaceFolder.uri, ".ix");
-    
+
     try {
       await vscode.workspace.fs.stat(ixFolderUri);
     } catch {
@@ -241,7 +241,10 @@ export async function loadWorkspaceCommands(): Promise<void> {
         }
       }
     } catch (error) {
-      console.error(`Error scanning .ix folder in ${workspaceFolder.name}:`, error);
+      console.error(
+        `Error scanning .ix folder in ${workspaceFolder.name}:`,
+        error
+      );
     }
   }
 }
@@ -251,17 +254,17 @@ export async function loadWorkspaceCommands(): Promise<void> {
  */
 async function findTypeScriptFiles(dirUri: vscode.Uri): Promise<vscode.Uri[]> {
   const results: vscode.Uri[] = [];
-  
+
   try {
     const entries = await vscode.workspace.fs.readDirectory(dirUri);
-    
+
     for (const [name, type] of entries) {
       if (name === "node_modules" || name.startsWith(".")) {
         continue;
       }
 
       const entryUri = vscode.Uri.joinPath(dirUri, name);
-      
+
       if (type === vscode.FileType.Directory) {
         const subResults = await findTypeScriptFiles(entryUri);
         results.push(...subResults);
@@ -272,7 +275,7 @@ async function findTypeScriptFiles(dirUri: vscode.Uri): Promise<vscode.Uri[]> {
   } catch (error) {
     console.error(`Error reading directory ${dirUri.fsPath}:`, error);
   }
-  
+
   return results;
 }
 
@@ -285,13 +288,11 @@ async function loadCompiledCommand(
   workspaceFolder: vscode.WorkspaceFolder
 ): Promise<void> {
   try {
-    // Read the TypeScript source file
     const content = await vscode.workspace.fs.readFile(tsFileUri);
     const sourceCode = Buffer.from(content).toString("utf8");
 
     console.log(`Compiling TypeScript command from: ${tsFileUri.fsPath}`);
 
-    // Transpile TypeScript to JavaScript using the Compiler API
     const result = ts.transpileModule(sourceCode, {
       compilerOptions: {
         module: ts.ModuleKind.CommonJS,
@@ -313,12 +314,10 @@ async function loadCompiledCommand(
 
     const compiledCode = result.outputText;
 
-    // Create a module context to execute the compiled code
     const moduleExports: any = {};
     const ixFolderPath = path.join(workspaceFolder.uri.fsPath, ".ix");
     const ixNodeModulesPath = path.join(ixFolderPath, "node_modules");
-    
-    // Build module paths that include .ix/node_modules first
+
     const modulePaths = [
       ixNodeModulesPath,
       path.join(ixFolderPath, "node_modules"),
@@ -337,9 +336,7 @@ async function loadCompiledCommand(
       paths: modulePaths,
     };
 
-    // Create a custom require function that can resolve modules
     const customRequire = (moduleName: string) => {
-      // Handle path aliases like @/types/command, @/utils/commandRegistry
       if (moduleName.startsWith("@/")) {
         const relativePath = moduleName.replace("@/", "");
         const resolvedPath = path.join(
@@ -347,8 +344,7 @@ async function loadCompiledCommand(
           "src",
           relativePath
         );
-        
-        // Try with extension, then without
+
         try {
           return require(resolvedPath);
         } catch {
@@ -358,7 +354,6 @@ async function loadCompiledCommand(
             try {
               return require(resolvedPath + ".js");
             } catch {
-              // Try as directory with index
               try {
                 return require(path.join(resolvedPath, "index"));
               } catch {
@@ -369,25 +364,21 @@ async function loadCompiledCommand(
           }
         }
       }
-      
-      // For regular npm modules, use Node's module resolution with custom paths
-      // This will check .ix/node_modules first, then fall back to parent paths
+
       try {
         const resolved = require.resolve(moduleName, { paths: modulePaths });
         return require(resolved);
       } catch (err) {
-        // If module resolution fails, throw a helpful error
-        throw new Error(`Cannot find module '${moduleName}'. Make sure it's installed in .ix/node_modules`);
+        throw new Error(
+          `Cannot find module '${moduleName}'. Make sure it's installed in .ix/node_modules`
+        );
       }
     };
 
-    // Add properties from standard require
     customRequire.resolve = (moduleName: string, options?: any) => {
-      // Try to resolve from .ix/node_modules first
       try {
         return require.resolve(moduleName, { paths: modulePaths, ...options });
       } catch (err) {
-        // Try direct path resolution
         const possiblePaths = [
           path.join(ixFolderPath, "node_modules", moduleName),
           moduleName,
@@ -401,7 +392,6 @@ async function loadCompiledCommand(
           }
         }
 
-        // Fall back to standard resolve without custom paths
         return require.resolve(moduleName, options);
       }
     };
@@ -409,7 +399,6 @@ async function loadCompiledCommand(
     customRequire.extensions = require.extensions;
     customRequire.main = require.main;
 
-    // Create the sandbox context for code execution
     const sandbox = {
       module: moduleObject,
       exports: moduleExports,
@@ -427,13 +416,11 @@ async function loadCompiledCommand(
       clearImmediate,
     };
 
-    // Execute the compiled code in the sandbox
     vm.runInNewContext(compiledCode, sandbox, {
       filename: tsFileUri.fsPath,
       displayErrors: true,
     });
 
-    // Mark module as loaded
     moduleObject.loaded = true;
 
     console.log(
