@@ -405,95 +405,23 @@ async function loadCompiledCommand(
       }
     }
 
-    function resolveModulePathFromPackage(
-      packageRoot: string,
-      subpath: string
-    ): string | undefined {
-      const normalizedSubpath = subpath.replace(/\\/g, "/");
-      const candidateBase = path.join(packageRoot, normalizedSubpath);
-      const directStat = safeStat(candidateBase);
-      let resolve = undefined;
-      if (directStat?.isFile()) {
-        resolve = candidateBase;
-      }
-
-      const ext = path.extname(candidateBase);
-      if (!ext) {
-        for (const candidateExt of fallbackExtensions) {
-          const candidatePath = `${candidateBase}${candidateExt}`;
-          if (safeStat(candidatePath)?.isFile()) {
-            resolve = candidatePath;
-          }
-        }
-      }
-
-      const directoryToCheck = directStat?.isDirectory() ? candidateBase : undefined;
-      if (directoryToCheck) {
-        for (const indexFile of indexCandidates) {
-          const candidatePath = path.join(directoryToCheck, indexFile);
-          if (safeStat(candidatePath)?.isFile()) {
-            resolve = candidatePath;
-          }
-        }
-      }
-      return resolve;
-    }
-
-    // 4. Refactor loadModuleFromResolvedPath to use `ixRequire` for JS
-    function loadModuleFromResolvedPath(resolvedPath: string): any {
-      const extension = path.extname(resolvedPath);
-      if (TS_RUNTIME_EXTENSIONS.has(extension)) {
-        const cached = dependencyModuleCache.get(resolvedPath);
-        if (cached) {
-          return cached;
-        }
-
-        const sourceText = fsNative.readFileSync(resolvedPath, "utf8");
-        const transpiled = ts.transpileModule(sourceText, {
-          // ... (your compilerOptions)
-          fileName: resolvedPath,
-        });
-
-        const dependencyModule = {
-          exports: {},
-          id: resolvedPath,
-          filename: resolvedPath,
-          loaded: false,
-          parent: moduleObject,
-          children: [],
-          paths: modulePaths,
-        };
-
-        dependencyModuleCache.set(resolvedPath, dependencyModule.exports);
-
-        // CRITICAL: The sandbox for dependencies *also* uses the
-        // same `buildSandbox` rules, which gives it the same `customRequire`.
-        const dependencySandbox = buildSandbox(dependencyModule);
-        vm.runInNewContext(transpiled.outputText, dependencySandbox, {
-          filename: resolvedPath,
-          displayErrors: true,
-        });
-
-        dependencyModule.loaded = true;
-        return dependencyModule.exports;
-      }
-      // Use our new, correctly-scoped require for plain .js files
-      return ixRequire(resolvedPath);
-    }
-
-    function parsePackageRequest(
-      request: string
-    ): { packageName: string; subpath: string } | undefined {
-      if (!request || request.startsWith(".") || request.startsWith("/")) {
+    // 5. Refactor resolveModulePathFallback to use `ixRequire.resolve`
+    function resolveModulePathFallback(moduleName: string): string | undefined {
+      let parsed = undefined;
+      if (
+        !moduleName ||
+        moduleName.startsWith(".") ||
+        moduleName.startsWith("/")
+      ) {
         return undefined;
       }
 
-      const segments = request.split("/");
-      if (request.startsWith("@")) {
+      const segments = moduleName.split("/");
+      if (moduleName.startsWith("@")) {
         if (segments.length < 3) {
           return undefined;
         }
-        return {
+        parsed = {
           packageName: `${segments[0]}/${segments[1]}`,
           subpath: segments.slice(2).join("/"),
         };
@@ -503,14 +431,10 @@ async function loadCompiledCommand(
         return undefined;
       }
 
-      return {
+      parsed = {
         packageName: segments[0],
         subpath: segments.slice(1).join("/"),
       };
-    }
-    // 5. Refactor resolveModulePathFallback to use `ixRequire.resolve`
-    function resolveModulePathFallback(moduleName: string): string | undefined {
-      const parsed = parsePackageRequest(moduleName);
       if (!parsed) {
         return undefined;
       }
@@ -520,10 +444,38 @@ async function loadCompiledCommand(
         const packageJsonPath = ixRequire.resolve(
           `${parsed.packageName}/package.json`
         );
-        return resolveModulePathFromPackage(
-          path.dirname(packageJsonPath),
-          parsed.subpath
-        );
+        const packageRoot = path.dirname(packageJsonPath);
+        const subpath = parsed.subpath;
+        const normalizedSubpath = subpath.replace(/\\/g, "/");
+        const candidateBase = path.join(packageRoot, normalizedSubpath);
+        const directStat = safeStat(candidateBase);
+        let resolve = undefined;
+        if (directStat?.isFile()) {
+          resolve = candidateBase;
+        }
+
+        const ext = path.extname(candidateBase);
+        if (!ext) {
+          for (const candidateExt of fallbackExtensions) {
+            const candidatePath = `${candidateBase}${candidateExt}`;
+            if (safeStat(candidatePath)?.isFile()) {
+              resolve = candidatePath;
+            }
+          }
+        }
+
+        const directoryToCheck = directStat?.isDirectory()
+          ? candidateBase
+          : undefined;
+        if (directoryToCheck) {
+          for (const indexFile of indexCandidates) {
+            const candidatePath = path.join(directoryToCheck, indexFile);
+            if (safeStat(candidatePath)?.isFile()) {
+              resolve = candidatePath;
+            }
+          }
+        }
+        return resolve;
       } catch {
         return undefined;
       }
@@ -538,9 +490,46 @@ async function loadCompiledCommand(
         return ixRequire(moduleName);
       } catch (err: any) {
         // If that fails (e.g., it's a TS file), try your fallback logic
-        const fallbackPath = resolveModulePathFallback(moduleName);
-        if (fallbackPath) {
-          return loadModuleFromResolvedPath(fallbackPath);
+        const resolvedPath = resolveModulePathFallback(moduleName);
+        if (resolvedPath) {
+          const extension = path.extname(resolvedPath);
+          if (TS_RUNTIME_EXTENSIONS.has(extension)) {
+            const cached = dependencyModuleCache.get(resolvedPath);
+            if (cached) {
+              return cached;
+            }
+
+            const sourceText = fsNative.readFileSync(resolvedPath, "utf8");
+            const transpiled = ts.transpileModule(sourceText, {
+              // ... (your compilerOptions)
+              fileName: resolvedPath,
+            });
+
+            const dependencyModule = {
+              exports: {},
+              id: resolvedPath,
+              filename: resolvedPath,
+              loaded: false,
+              parent: moduleObject,
+              children: [],
+              paths: modulePaths,
+            };
+
+            dependencyModuleCache.set(resolvedPath, dependencyModule.exports);
+
+            // CRITICAL: The sandbox for dependencies *also* uses the
+            // same `buildSandbox` rules, which gives it the same `customRequire`.
+            const dependencySandbox = buildSandbox(dependencyModule);
+            vm.runInNewContext(transpiled.outputText, dependencySandbox, {
+              filename: resolvedPath,
+              displayErrors: true,
+            });
+
+            dependencyModule.loaded = true;
+            return dependencyModule.exports;
+          }
+          // Use our new, correctly-scoped require for plain .js files
+          return ixRequire(resolvedPath);
         }
         throw new Error(
           `Cannot find module '${moduleName}'. Make sure it's installed in .ix/node_modules (Error: ${err.message})`
