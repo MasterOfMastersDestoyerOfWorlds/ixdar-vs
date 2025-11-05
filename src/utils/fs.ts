@@ -139,8 +139,14 @@ async function ensureIxGitIgnore(
   workspaceGitIgnore: string | undefined
 ): Promise<void> {
   let desiredGitIgnore = workspaceGitIgnore ?? "";
+  if (!desiredGitIgnore.includes("node_modules/**")) {
+    desiredGitIgnore += "node_modules/**\n";
+  }
   if (!desiredGitIgnore.includes("npm_modules/**")) {
     desiredGitIgnore += "npm_modules/**\n";
+  }
+  if (!desiredGitIgnore.includes("out/**")) {
+    desiredGitIgnore += "out/**\n";
   }
   await vscode.workspace.fs.writeFile(
     ixGitIgnoreUri,

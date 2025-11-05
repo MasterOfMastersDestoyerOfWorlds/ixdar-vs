@@ -86,14 +86,6 @@
         "title": "IX: Ixdar Command"
       },
       {
-        "command": "ixdar-vs.insertDefinitionShortcode",
-        "title": "IX: Insert Definition Shortcode"
-      },
-      {
-        "command": "ixdar-vs.insertEssayImageShortcode",
-        "title": "IX: Insert Essay Image Shortcode"
-      },
-      {
         "command": "ixdar-vs.newIxdarCommand",
         "title": "IX: New Ixdar Command"
       },
