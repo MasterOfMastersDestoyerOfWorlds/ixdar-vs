@@ -1,0 +1,7 @@
+"TypeError: Cannot read properties of undefined (reading 'cache') 
+at loadCompiledCommand (c:\\Code\\ixdar-vs\\out\\extension.js:1901:41) 
+at async Module.loadWorkspaceCommands (c:\\Code\\ixdar-vs\\out\\extension.js:1622:21) 
+at async activate (c:\\Code\\ixdar-vs\\out\\extension.js:203523:5) 
+at async pwe._activate (file:///c:/Users/andre/AppData/Local/Programs/cursor/resources/app/out/vs/workbench/api/node/extensionHostProcess.js:136:16342) 
+at async pwe._waitForDepsThenActivate (file:///c:/Users/andre/AppData/Local/Programs/cursor/resources/app/out/vs/workbench/api/node/extensionHostProcess.js:136:16284) 
+at async pwe._initialize (file:///c:/Users/andre/AppData/Local/Programs/cursor/resources/app/out/vs/workbench/api/node/extensionHostProcess.js:136:15646)"
