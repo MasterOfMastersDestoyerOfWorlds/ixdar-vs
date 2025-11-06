@@ -76,7 +76,7 @@ const commandFunc = async () => {
 
   const argsList = targets.map((_, i) => `arg${i}`).join(", ");
   const templateFunction = `
-import * as ${importer.extensionCallSign()} from "${importer.extensionName()}";
+${importer.getIxdarImport()}";
 ${importer.getImport(strings)}
 export function makeTemplate(${argsList}: string) {\n  return \`${content}\`;\n}`;
 

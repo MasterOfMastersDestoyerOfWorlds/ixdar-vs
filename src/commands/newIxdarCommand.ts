@@ -8,6 +8,9 @@ import { RegisterCommand } from "@/utils/command/commandRegistry";
 import * as strings from "@/utils/templating/strings";
 import * as importer from "@/utils/templating/importer";
 import * as vscode from "vscode";
+import * as mcp from "@/utils/ai/mcp";
+import * as commandRegistry from "@/utils/command/commandRegistry";
+import * as commandModule from "@/types/command";
 
 function ixdarCommandTemplate(
   additionalImports: string,
@@ -16,11 +19,8 @@ function ixdarCommandTemplate(
   indentedBody: string
 ) {
   return `
-import * as vscode from "vscode";
-import { CommandModuleImpl, type CommandModule, type McpResult } from "@/types/command";
-import * as strings from "@/utils/strings";
-import * as mcp from "@/utils/mcp";
-import { RegisterCommand } from "@/utils/commandRegistry";
+${importer.getImportModule("vscode")}
+${importer.getImportRelative(commandModule, strings, mcp, commandRegistry)}
 ${additionalImports}
 /**
  * ${newCommandName}: ${newCommandDescription}

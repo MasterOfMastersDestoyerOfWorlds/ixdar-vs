@@ -1,8 +1,7 @@
 import * as vscode from "vscode";
 import * as fs from "fs";
 import * as path from "path";
-import { CommandModuleImpl, type CommandModule, type McpResult } from "@/types/command";
-import * as strings from "@/utils/templating/strings";
+import { CommandModuleImpl, type CommandModule } from "@/types/command";
 import * as importer from "@/utils/templating/importer";
 import * as mcp from "@/utils/ai/mcp";
 import { RegisterCommand } from "@/utils/command/commandRegistry";

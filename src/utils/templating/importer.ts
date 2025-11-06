@@ -2,11 +2,33 @@
  * Get the module path for a given module export object.
  * Looks for the __modulePath export that was injected by the webpack loader.
  */
-export function getImport(moduleExports: any): string | undefined {
-  if (moduleExports && typeof moduleExports === "object") {
-    return `import * as ${moduleExports.__moduleName} from 'ixdar-vs/src${moduleExports.__modulePath}';`;
+
+export function getImport(...moduleExports: any[]): string {
+  let result = "";
+  for (const moduleExport of moduleExports) {
+    if (moduleExport && typeof moduleExport === "object") {
+      result +=
+        `import * as ${moduleExport.__moduleName} from 'ixdar-vs/src${moduleExport.__modulePath}';` +
+        "\n";
+    }
   }
-  return undefined;
+  return result;
+}
+
+export function getImportRelative(...moduleExports: any[]): string {
+  let result = "";
+  for (const moduleExport of moduleExports) {
+    if (moduleExport && typeof moduleExport === "object") {
+      result +=
+        `import * as ${moduleExport.__moduleName} from '@${moduleExport.__modulePath}';` +
+        "\n";
+    }
+  }
+  return result;
+}
+
+export function getImportModule(moduleExports: string) {
+  return `import * as ${moduleExports} from "${moduleExports}";`;
 }
 
 export function getCallSign(moduleExports: any): string | undefined {
@@ -27,3 +49,8 @@ export function extensionName(): string {
 export function extensionCommandName(commandName: string): string {
   return `${extensionName()}.${commandName}`;
 }
+
+export function getIxdarImport() {
+  return `import * as ${extensionCallSign()} from "${extensionName()}"`;
+}
+
