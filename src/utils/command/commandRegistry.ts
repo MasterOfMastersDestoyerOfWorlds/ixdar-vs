@@ -1,5 +1,6 @@
-import type { CommandModule } from "@/types/command";
-
+import { CommandModule, McpResult } from "@/types/command";
+import * as vscode from "vscode";
+import * as mcp from "@/utils/ai/mcp";
 /**
  * Singleton registry for command modules.
  * Commands register themselves using the @RegisterCommand decorator.
@@ -94,4 +95,88 @@ export function RegisterCommand<T extends { new (...args: any[]): any }>(
 export function registerCommand(command: CommandModule): CommandModule {
   CommandRegistry.getInstance().register(command);
   return command;
+}
+
+export interface CommandQuickPickItem extends vscode.QuickPickItem {
+  commandModule: CommandModule;
+}
+
+export async function getVscodeCommandQuickPickItems(): Promise<
+  CommandQuickPickItem[]
+> {
+  const vscodeCommands = await vscode.commands.getCommands(true);
+  const commonVSCodeCommands = vscodeCommands
+    .filter(
+      (cmd) =>
+        cmd.startsWith("editor.action.") ||
+        cmd.startsWith("workbench.action.") ||
+        cmd.startsWith("extension.")
+    );
+  return commonVSCodeCommands.map((cmd) => ({
+    label: `${cmd}`,
+    description: "VS Code command",
+    detail: "Built-in VS Code Command",
+    commandModule: {
+      name: cmd,
+      description: "VS Code command",
+      meta: {
+        category: "general",
+      },
+      vscodeCommand: { id: cmd, register: () => {} },
+      mcp: {
+        enabled: false,
+        tool: {
+          description: "VS Code command",
+          inputSchema: {
+            type: "object",
+            properties: {},
+          },
+        },
+        call: () => Promise.resolve(new McpResult()),
+      },
+    },
+  }));
+}
+
+export function getMcpCommandQuickPickItems(): CommandQuickPickItem[] {
+  const registry = CommandRegistry.getInstance();
+  const allCommands = registry.getAllMcpCommands();
+
+  if (allCommands.length === 0) {
+    vscode.window.showWarningMessage("No commands are registered.");
+    return [];
+  }
+
+  return allCommands.map((cmd) => ({
+    label: cmd.vscodeCommand.id,
+    description: cmd.description,
+    detail: `Category: ${cmd.meta.category}${cmd.meta.languages ? ` | Languages: ${cmd.meta.languages.join(", ")}` : ""}`,
+    commandModule: cmd,
+  }));
+}
+
+export function findCommandById(id: string): CommandModule | McpResult {
+  const registry = CommandRegistry.getInstance();
+  const allCommands = registry.getAllMcpCommands();
+
+  const targetCommand = allCommands.find(
+    (cmd) =>
+      cmd.vscodeCommand.id === id ||
+      cmd.vscodeCommand.id.endsWith(`.${id}`) ||
+      cmd.name === id
+  );
+
+  if (!targetCommand) {
+    const availableCommands = allCommands.map((cmd) => ({
+      id: cmd.vscodeCommand.id,
+      name: cmd.name,
+      description: cmd.mcp?.tool.description,
+    }));
+
+    return mcp.returnMcpError({
+      error: `Command '${id}' not found`,
+      availableCommands,
+    });
+  }
+  return targetCommand;
 }

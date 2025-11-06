@@ -151,14 +151,14 @@
         "when": "editorTextFocus"
       },
       {
-        "command": "ixdar-vs.insertDefinitionShortcode",
-        "key": "ctrl+shift+d",
-        "when": "editorTextFocus && editorLangId == markdown"
+        "command": "ixdar-vs.ixCommand",
+        "key": "ctrl+shift+x",
+        "when": "editorTextFocus"
       },
       {
-        "command": "ixdar-vs.insertEssayImageShortcode",
-        "key": "ctrl+shift+i",
-        "when": "editorTextFocus && editorLangId == markdown"
+        "command": "ixdar-vs.newIxdarCommand",
+        "key": "ctrl+alt+x",
+        "when": "editorTextFocus"
       },
       {
         "command": "ixdar-vs.growSelection",

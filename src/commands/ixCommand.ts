@@ -1,10 +1,10 @@
 import * as vscode from "vscode";
 import {
   CommandModuleImpl,
+  McpResult,
   type CommandModule,
-  type McpResult,
 } from "@/types/command";
-import { CommandRegistry, RegisterCommand } from "@/utils/command/commandRegistry";
+import * as commandRegistry from "@/utils/command/commandRegistry";
 import * as mcp from "@/utils/ai/mcp";
 
 /**
@@ -15,25 +15,10 @@ const commandName = "ixCommand";
 const languages = undefined;
 const repoName = undefined;
 const commandFunc = async () => {
-  const registry = CommandRegistry.getInstance();
-  const allCommands = registry.getAllMcpCommands();
-
-  if (allCommands.length === 0) {
-    vscode.window.showWarningMessage("No commands are registered.");
+  const items = commandRegistry.getMcpCommandQuickPickItems();
+  if (items.length === 0) {
     return;
   }
-
-  interface CommandQuickPickItem extends vscode.QuickPickItem {
-    commandModule: CommandModule;
-  }
-
-  const items: CommandQuickPickItem[] = allCommands.map((cmd) => ({
-    label: cmd.vscodeCommand.id,
-    description: cmd.description,
-    detail: `Category: ${cmd.meta.category}${cmd.meta.languages ? ` | Languages: ${cmd.meta.languages.join(", ")}` : ""}`,
-    commandModule: cmd,
-  }));
-
   const selected = await vscode.window.showQuickPick(items, {
     placeHolder: "Select a command to execute",
     matchOnDescription: true,
@@ -59,24 +44,10 @@ const commandFunc = async () => {
 const mcpFunc = async (args: any): Promise<McpResult> => {
   try {
     const commandName = args.commandName;
-    const registry = CommandRegistry.getInstance();
-    const allCommands = registry.getAllMcpCommands();
+    const targetCommand = commandRegistry.findCommandById(commandName);
 
-    const targetCommand = allCommands.find(
-      (cmd) =>
-        cmd.vscodeCommand.id === commandName ||
-        cmd.vscodeCommand.id.endsWith(`.${commandName}`) ||
-        cmd.name === commandName
-    );
-
-    if (!targetCommand) {
-      const availableCommands = allCommands.map((cmd) => ({
-        id: cmd.vscodeCommand.id,
-        name: cmd.name,
-        description: cmd.mcp?.tool.description,
-      }));
-
-      return mcp.returnMcpError({ error: `Command '${commandName}' not found`, availableCommands });
+    if (targetCommand instanceof McpResult) {
+      return targetCommand;
     }
 
     const result = await targetCommand.mcp?.call(args.args || {});
@@ -119,7 +90,7 @@ const command: CommandModule = new CommandModuleImpl(
   mcpFunc
 );
 
-@RegisterCommand
+@commandRegistry.RegisterCommand
 class CommandExport {
   static default = command;
 }

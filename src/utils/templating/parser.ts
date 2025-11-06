@@ -201,6 +201,38 @@ export function getCommentSymbol(languageId: string): string {
 }
 
 /**
+ * Get tree-sitter query for finding methods/functions based on language
+ */
+export function getMethodQuery(languageId: string): string {
+  switch (languageId.toLowerCase()) {
+    case "javascript":
+    case "typescript":
+    case "javascriptreact":
+    case "typescriptreact":
+      return `
+        (function_declaration name: (identifier) @name) @function
+        (method_definition name: (property_identifier) @name) @function
+        (arrow_function) @function
+        (function_expression) @function
+      `;
+    case "python":
+      return `
+        (function_definition name: (identifier) @name) @function
+      `;
+    case "java":
+      return `
+        (method_declaration name: (identifier) @name) @function
+      `;
+    case "csharp":
+      return `
+        (method_declaration name: (identifier) @name) @function
+      `;
+    default:
+      return "";
+  }
+}
+
+/**
  * Validate a tree-sitter query string
  * @param queryString The query string to validate
  * @param language The tree-sitter language object

@@ -15,8 +15,8 @@ export interface McpToolDefinition {
   inputSchema: InputSchema;
 }
 
-export interface McpResult {
-  content: Array<{ type: string; text: string }>;
+export class McpResult {
+  content?: Array<{ type: string; text: string }>;
   isError?: boolean;
 }
 

@@ -11,6 +11,7 @@ import {
 } from "@/utils/command/commandRegistry";
 import * as path from "path";
 import * as fs from "@/utils/vscode/fs";
+import { commandRegistry } from "..";
 /**
  * callOverFolder: Call any ix command or vscode command over all files and sub folders of a given folder
  */
@@ -38,62 +39,18 @@ const commandFunc = async () => {
   const registry = CommandRegistry.getInstance();
   const allCommands = registry.getAllMcpCommands();
 
-  // Also get all VS Code commands
-  const vscodeCommands = await vscode.commands.getCommands(true);
-
-  interface CommandQuickPickItem extends vscode.QuickPickItem {
-    commandId: string;
-    isIxdar: boolean;
-  }
-
-  // Add ixdar commands
-  const ixdarItems: CommandQuickPickItem[] = allCommands
-    .filter((cmd) => cmd.name !== commandName) // Don't allow recursive calls
-    .map((cmd) => ({
-      label: `$(symbol-method) ${cmd.name}`,
-      description: cmd.description,
-      detail: `Ixdar Command | ${cmd.meta.category}`,
-      commandId: cmd.vscodeCommand.id,
-      isIxdar: true,
-    }));
-
-  // Add common VS Code commands
-  const commonVSCodeCommands = vscodeCommands
-    .filter(
-      (cmd) =>
-        cmd.startsWith("editor.action.") ||
-        cmd.startsWith("workbench.action.") ||
-        cmd.startsWith("extension.")
-    )
-    .slice(0, 50); // Limit to avoid overwhelming the list
-
-  const vscodeItems: CommandQuickPickItem[] = commonVSCodeCommands.map(
-    (cmd) => ({
-      label: `$(symbol-event) ${cmd}`,
-      description: "VS Code command",
-      detail: "Built-in VS Code Command",
-      commandId: cmd,
-      isIxdar: false,
-    })
-  );
-
-  const allItems = [...ixdarItems, ...vscodeItems];
-
+  const vscodeItems = await commandRegistry.getVscodeCommandQuickPickItems();
+  const items = commandRegistry.getMcpCommandQuickPickItems();
+  const allItems = [ ...items,...vscodeItems];
   const selectedCommand = await vscode.window.showQuickPick(allItems, {
-    placeHolder: "Select a command to execute on all files",
+    placeHolder: "Select a command to execute",
     matchOnDescription: true,
     matchOnDetail: true,
   });
-
   if (!selectedCommand) {
-    vscode.window.showErrorMessage("No command selected.");
     return;
   }
 
-  // Step 3: Get all files in the folder
-  vscode.window.showInformationMessage(
-    `Scanning folder: ${selectedFolder.fsPath}`
-  );
   const files = await fs.getAllFiles(selectedFolder);
 
   if (files.length === 0) {
@@ -101,26 +58,13 @@ const commandFunc = async () => {
     return;
   }
 
-  // Step 4: Confirm execution
-  const confirmation = await vscode.window.showWarningMessage(
-    `Execute "${selectedCommand.label}" on ${files.length} files?`,
-    { modal: true },
-    "Yes",
-    "No"
-  );
-
-  if (confirmation !== "Yes") {
-    return;
-  }
-
-  // Step 5: Execute command on each file
   let successCount = 0;
   let errorCount = 0;
 
   await vscode.window.withProgress(
     {
       location: vscode.ProgressLocation.Notification,
-      title: `Executing ${selectedCommand.commandId}`,
+      title: `Executing ${selectedCommand.commandModule.vscodeCommand.id}`,
       cancellable: true,
     },
     async (progress, token) => {
@@ -143,7 +87,7 @@ const commandFunc = async () => {
             preserveFocus: true,
           });
 
-          await vscode.commands.executeCommand(selectedCommand.commandId);
+          await vscode.commands.executeCommand(selectedCommand.label);
 
           if (document.isDirty) {
             await document.save();
