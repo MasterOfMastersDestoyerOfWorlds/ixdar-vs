@@ -71,12 +71,12 @@ export function createCompilerHost(
 }
 
 export function compile(
-  sourceFiles: string[], 
+  sourceFiles: string[],
   moduleSearchLocations: string[],
   outDir: string
 ): ts.Program {
   const options: ts.CompilerOptions = {
-    module: ts.ModuleKind.CommonJS, 
+    module: ts.ModuleKind.CommonJS,
     target: ts.ScriptTarget.ES2020,
     outDir: outDir,
     esModuleInterop: true,
@@ -90,4 +90,36 @@ export function compile(
   const host = createCompilerHost(options, moduleSearchLocations);
   const program = ts.createProgram(sourceFiles, options, host);
   return program;
+}
+
+export function emit(program: ts.Program) {
+  const emitResult = program.emit();
+
+  if (emitResult.emitSkipped) {
+    const allDiagnostics = ts
+      .getPreEmitDiagnostics(program)
+      .concat(emitResult.diagnostics);
+
+    allDiagnostics.forEach((diagnostic) => {
+      if (diagnostic.file) {
+        const { line, character } = ts.getLineAndCharacterOfPosition(
+          diagnostic.file,
+          diagnostic.start!
+        );
+        const message = ts.flattenDiagnosticMessageText(
+          diagnostic.messageText,
+          "\n"
+        );
+        console.error(
+          `${diagnostic.file.fileName} (${line + 1},${
+            character + 1
+          }): ${message}`
+        );
+      } else {
+        throw new Error(
+          ts.flattenDiagnosticMessageText(diagnostic.messageText, "\n")
+        );
+      }
+    });
+  }
 }

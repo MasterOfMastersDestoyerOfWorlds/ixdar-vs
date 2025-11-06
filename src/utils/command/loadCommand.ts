@@ -8,48 +8,7 @@ import * as vm from "vm";
 import * as vscode from "vscode";
 
 declare const __non_webpack_require__: (id: string) => any;
-const TS_RUNTIME_EXTENSIONS = new Set([".ts", ".tsx", ".cts", ".mts"]);
-const JS_PREFERRED_EXTENSIONS = [
-  ".js",
-  ".cjs",
-  ".mjs",
-  ".jsx",
-  ".json",
-  ".node",
-];
-const fallbackExtensions = [
-  ...JS_PREFERRED_EXTENSIONS,
-  ...Array.from(TS_RUNTIME_EXTENSIONS),
-];
-const indexCandidates = fallbackExtensions
-  .filter((ext) => ext.length > 0)
-  .map((ext) => `index${ext}`);
 
-function resolveFileCandidate(basePath: string): string | undefined {
-  const directStat = fs.safeStat(basePath);
-  if (directStat?.isFile()) {
-    return basePath;
-  }
-  const ext = path.extname(basePath);
-  if (!ext) {
-    for (const candidateExt of fallbackExtensions) {
-      const candidatePath = `${basePath}${candidateExt}`;
-      if (fs.safeStat(candidatePath)?.isFile()) {
-        return candidatePath;
-      }
-    }
-  }
-  const directoryToCheck = directStat?.isDirectory() ? basePath : undefined;
-  if (directoryToCheck) {
-    for (const indexFile of indexCandidates) {
-      const candidatePath = path.join(directoryToCheck, indexFile);
-      if (fs.safeStat(candidatePath)?.isFile()) {
-        return candidatePath;
-      }
-    }
-  }
-  return undefined;
-}
 
 /**
  * Loads command modules from the .ix folder in the workspace.
@@ -160,37 +119,7 @@ async function loadCompiledCommand(
     console.log(`Compiling ${tsFileUri.fsPath}...`);
     const outDir = path.join(ixFolderPath, "out");
     const program = compiler.compile([tsFileUri.fsPath], modulePaths, outDir);
-    const emitResult = program.emit();
-
-    if (emitResult.emitSkipped) {
-      const allDiagnostics = ts
-        .getPreEmitDiagnostics(program)
-        .concat(emitResult.diagnostics);
-
-      allDiagnostics.forEach((diagnostic) => {
-        if (diagnostic.file) {
-          const { line, character } = ts.getLineAndCharacterOfPosition(
-            diagnostic.file,
-            diagnostic.start!
-          );
-          const message = ts.flattenDiagnosticMessageText(
-            diagnostic.messageText,
-            "\n"
-          );
-          console.error(
-            `${diagnostic.file.fileName} (${line + 1},${
-              character + 1
-            }): ${message}`
-          );
-        } else {
-          console.error(
-            ts.flattenDiagnosticMessageText(diagnostic.messageText, "\n")
-          );
-        }
-      });
-      return;
-    }
-    console.log(`Successfully compiled ${tsFileUri.fsPath}.`);
+    compiler.emit(program);
 
     const relativeTsPath = path.relative(ixFolderPath, tsFileUri.fsPath);
     const jsOutputPath = path
@@ -215,43 +144,6 @@ async function loadCompiledCommand(
 
     let customRequire: any;
 
-    function resolveModulePathFallback(moduleName: string): string | undefined {
-      let parsed: { packageName: string; subpath: string } | undefined;
-
-      if (
-        !moduleName ||
-        moduleName.startsWith(".") ||
-        moduleName.startsWith("/")
-      ) {
-        parsed = undefined;
-      }
-      const segments = moduleName.split("/");
-      if (moduleName.startsWith("@")) {
-        if (segments.length < 2) parsed = undefined; 
-        const packageName = `${segments[0]}/${segments[1]}`;
-        const subpath = segments.slice(2).join("/");
-        parsed = { packageName, subpath };
-      }
-      const packageName = segments[0];
-      const subpath = segments.slice(1).join("/");
-      parsed = { packageName, subpath };
-
-      if (!parsed) return undefined;
-
-      for (const basePath of modulePaths) {
-        try {
-          const packageJsonPath = path.join(
-            basePath,
-            parsed.packageName,
-            "package.json"
-          );
-          if (fs.safeStat(packageJsonPath)?.isFile()) {
-            return path.dirname(packageJsonPath);
-          }
-        } catch {}
-      }
-      return undefined;
-    }
 
     customRequire = (moduleName: string) => {
       if (moduleName === "vscode") return require("vscode");
@@ -275,25 +167,7 @@ async function loadCompiledCommand(
         return;
       }
 
-      if (moduleName.startsWith(".")) {
-        const currentDir = path.dirname(moduleObject.filename);
-        const resolvedRelative = path.resolve(currentDir, moduleName);
-        const fileCandidate = resolveFileCandidate(resolvedRelative);
-        if (fileCandidate) {
-          return __non_webpack_require__(moduleName);
-        }
-      }
-
-      const packagePath = resolveModulePathFallback(moduleName);
-      if (packagePath) {
-        return __non_webpack_require__(moduleName);
-      }
-
-      throw new Error(
-        `[ix-runtime] Cannot find module '${moduleName}'. Searched in: ${modulePaths.join(
-          ", "
-        )}`
-      );
+      return __non_webpack_require__(moduleName);
     };
 
     function buildSandbox(moduleInfo: any): vm.Context {
@@ -331,7 +205,7 @@ async function loadCompiledCommand(
     if (commandToRegister) {
       registry.register(commandToRegister);
       console.log(
-        `Successfully loaded and *registered* command from ${tsFileUri.fsPath}`
+        `Successfully loaded and registered command from ${tsFileUri.fsPath}`
       );
     } else {
       console.warn(

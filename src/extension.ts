@@ -15,7 +15,6 @@ import {
 } from "@modelcontextprotocol/sdk/types.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
-import * as fs from "@/utils/vscode/fs";
 import * as loadCommand from "@/utils/command/loadCommand";
 
 export async function activate(context: vscode.ExtensionContext) {
