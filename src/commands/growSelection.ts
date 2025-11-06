@@ -1,8 +1,6 @@
 
 import * as vscode from "vscode";
-import { CommandModuleImpl, type CommandModule, type McpResult } from "@/types/command";
-import * as strings from "@/utils/templating/strings";
-import * as mcp from "@/utils/mcp";
+import { CommandModuleImpl, type CommandModule } from "@/types/command";
 import { RegisterCommand } from "@/utils/command/commandRegistry";
 import * as parser from "@/utils/templating/parser";
 import type Parser from "tree-sitter";

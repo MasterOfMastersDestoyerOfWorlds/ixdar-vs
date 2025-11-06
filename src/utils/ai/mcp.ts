@@ -1,6 +1,6 @@
-import { McpResult } from "../types/command";
+import { McpResult } from "@/types/command";
 import * as vscode from "vscode";
-import * as strings from "./templating/strings";
+import * as importer from "@/utils/templating/importer";
 
 export function executeCommand(
   commandName: string,
@@ -9,7 +9,7 @@ export function executeCommand(
   const mcpFunc = async (args: any): Promise<McpResult> => {
     const editor = vscode.window.activeTextEditor;
     await vscode.commands.executeCommand(
-      strings.extensionCommandName(commandName)
+      importer.extensionCommandName(commandName)
     );
     return returnMcpResult({
       success: true,

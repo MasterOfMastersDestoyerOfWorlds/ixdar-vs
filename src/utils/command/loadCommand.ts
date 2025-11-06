@@ -17,7 +17,6 @@ const JS_PREFERRED_EXTENSIONS = [
   ".json",
   ".node",
 ];
-const dependencyModuleCache = new Map<string, any>();
 const fallbackExtensions = [
   ...JS_PREFERRED_EXTENSIONS,
   ...Array.from(TS_RUNTIME_EXTENSIONS),
@@ -48,36 +47,6 @@ function resolveFileCandidate(basePath: string): string | undefined {
         return candidatePath;
       }
     }
-  }
-  return undefined;
-}
-
-function resolveModulePathFromPackage(
-  packageRoot: string,
-  subpath: string
-): string | undefined {
-  // If subpath is empty, try to resolve package "main"
-  if (!subpath) {
-    try {
-      const packageJson = JSON.parse(
-        fsNative.readFileSync(path.join(packageRoot, "package.json"), "utf8")
-      );
-      if (packageJson.main) {
-        const mainPath = path.resolve(packageRoot, packageJson.main);
-        const resolved = resolveFileCandidate(mainPath);
-        if (resolved) return resolved;
-      }
-    } catch {}
-    // Fallback to index
-    const indexResolved = resolveFileCandidate(path.join(packageRoot, "index"));
-    if (indexResolved) return indexResolved;
-  }
-
-  // Resolve subpath
-  const candidateBase = path.join(packageRoot, subpath);
-  const resolved = resolveFileCandidate(candidateBase);
-  if (resolved) {
-    return resolved;
   }
   return undefined;
 }
@@ -114,8 +83,6 @@ export async function loadWorkspaceCommands(): Promise<void> {
           const content = await vscode.workspace.fs.readFile(fileUri);
           const text = Buffer.from(content).toString("utf8");
 
-          // We'll check for @RegisterCommand just to be efficient,
-          // but the actual registration happens via `export default`.
           if (
             !text.includes("@RegisterCommand") &&
             !text.includes("export default")
@@ -183,7 +150,6 @@ async function loadCompiledCommand(
     "node_modules"
   );
 
-  // 1. Define all module paths
   const modulePaths = [
     ixNodeModulesPath,
     workspaceNodeModulesPath,
@@ -191,14 +157,12 @@ async function loadCompiledCommand(
   ];
 
   try {
-    // 2. Compile the program
     console.log(`Compiling ${tsFileUri.fsPath}...`);
     const outDir = path.join(ixFolderPath, "out");
     const program = compiler.compile([tsFileUri.fsPath], modulePaths, outDir);
     const emitResult = program.emit();
 
     if (emitResult.emitSkipped) {
-      // Log full diagnostics
       const allDiagnostics = ts
         .getPreEmitDiagnostics(program)
         .concat(emitResult.diagnostics);
@@ -228,8 +192,6 @@ async function loadCompiledCommand(
     }
     console.log(`Successfully compiled ${tsFileUri.fsPath}.`);
 
-    // 3. Find the *output* .js file
-    // e.g., ".ix/myCommand.ts" -> ".ix/out/myCommand.js"
     const relativeTsPath = path.relative(ixFolderPath, tsFileUri.fsPath);
     const jsOutputPath = path
       .join(outDir, relativeTsPath)
@@ -239,63 +201,20 @@ async function loadCompiledCommand(
       throw new Error(`Compiled file not found at: ${jsOutputPath}`);
     }
 
-    // 4. Read the compiled JavaScript
     const compiledCode = fsNative.readFileSync(jsOutputPath, "utf8");
 
-    // 5. --- THIS IS THE SANDBOX YOU NEED ---
     const moduleObject = {
       exports: {},
       id: tsFileUri.fsPath,
       filename: tsFileUri.fsPath,
       loaded: false,
-      parent: module, // The 'module' object provided by VS Code host
+      parent: module, 
       children: [],
       paths: modulePaths,
     };
 
-    let customRequire: any; // Forward declare for sandbox
+    let customRequire: any;
 
-    // 6. Manual function to load .ts dependencies
-    function loadTypeScriptDependency(resolvedPath: string): any {
-      const cached = dependencyModuleCache.get(resolvedPath);
-      if (cached) return cached;
-
-      const sourceText = fsNative.readFileSync(resolvedPath, "utf8");
-
-      // We must transpile dependencies, not compile them
-      const transpiled = ts.transpileModule(sourceText, {
-        compilerOptions: {
-          module: ts.ModuleKind.CommonJS,
-          target: ts.ScriptTarget.ES2020,
-          esModuleInterop: true,
-          experimentalDecorators: true,
-          emitDecoratorMetadata: true,
-          moduleResolution: ts.ModuleResolutionKind.NodeJs,
-        },
-        fileName: resolvedPath,
-      });
-
-      const dependencyModule = {
-        exports: {},
-        id: resolvedPath,
-        filename: resolvedPath,
-        loaded: false,
-        parent: moduleObject,
-        children: [],
-        paths: modulePaths,
-      };
-      dependencyModuleCache.set(resolvedPath, dependencyModule.exports);
-
-      const dependencySandbox = buildSandbox(dependencyModule);
-      vm.runInNewContext(transpiled.outputText, dependencySandbox, {
-        filename: resolvedPath,
-        displayErrors: true,
-      });
-      dependencyModule.loaded = true;
-      return dependencyModule.exports;
-    }
-
-    // 8. Manual path resolver (no require.resolve)
     function resolveModulePathFallback(moduleName: string): string | undefined {
       let parsed: { packageName: string; subpath: string } | undefined;
 
@@ -308,7 +227,7 @@ async function loadCompiledCommand(
       }
       const segments = moduleName.split("/");
       if (moduleName.startsWith("@")) {
-        if (segments.length < 2) parsed = undefined; // e.g. @scope (incomplete)
+        if (segments.length < 2) parsed = undefined; 
         const packageName = `${segments[0]}/${segments[1]}`;
         const subpath = segments.slice(2).join("/");
         parsed = { packageName, subpath };
@@ -335,7 +254,6 @@ async function loadCompiledCommand(
     }
 
     customRequire = (moduleName: string) => {
-      // "vscode" is special, it's provided by the host. Use the webpack 'require'.
       if (moduleName === "vscode") return require("vscode");
 
       const builtIns = [
@@ -353,24 +271,11 @@ async function loadCompiledCommand(
         "querystring",
       ];
 
-      // --- FIX ---
-      // Use `module.require` to get the *real* Node.js built-in modules,
-      // not the Webpack-bundled "empty" ones.
       if (builtIns.includes(moduleName)) {
         return;
       }
 
-      // Handle relative paths
       if (moduleName.startsWith(".")) {
-        const currentDir = path.dirname(moduleObject.filename);
-        const resolvedRelative = path.resolve(currentDir, moduleName);
-        const fileCandidate = resolveFileCandidate(resolvedRelative);
-        if (fileCandidate) {
-          return __non_webpack_require__(moduleName);
-        }
-      }
-
-      if (moduleName.startsWith("@")) {
         const currentDir = path.dirname(moduleObject.filename);
         const resolvedRelative = path.resolve(currentDir, moduleName);
         const fileCandidate = resolveFileCandidate(resolvedRelative);
@@ -391,7 +296,6 @@ async function loadCompiledCommand(
       );
     };
 
-    // 10. The sandbox builder
     function buildSandbox(moduleInfo: any): vm.Context {
       return vm.createContext({
         module: moduleInfo,
@@ -411,24 +315,19 @@ async function loadCompiledCommand(
       });
     }
 
-    // 11. Create the sandbox and run the code!
     const sandbox = buildSandbox(moduleObject);
     vm.runInNewContext(compiledCode, sandbox, {
-      filename: tsFileUri.fsPath, // Use the *original* .ts path for error reporting
+      filename: tsFileUri.fsPath, 
       displayErrors: true,
     });
 
     moduleObject.loaded = true;
 
-    // --- Parent-Side Registration ("Faking it") ---
 
-    // 1. Get the parent's "real" registry
     const registry = CommandRegistry.getInstance();
 
-    // 2. Check the child's exports for the command
     const commandToRegister = (moduleObject.exports as any).default;
 
-    // 3. Register it from the parent
     if (commandToRegister) {
       registry.register(commandToRegister);
       console.log(
@@ -439,7 +338,6 @@ async function loadCompiledCommand(
         `Loaded ${tsFileUri.fsPath}, but no 'default' export was found to register.`
       );
     }
-    // --- End of Registration ---
   } catch (error) {
     console.error(`Error loading command from ${tsFileUri.fsPath}:`, error);
     throw error;

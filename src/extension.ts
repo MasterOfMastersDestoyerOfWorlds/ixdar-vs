@@ -16,6 +16,7 @@ import {
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import * as fs from "@/utils/vscode/fs";
+import * as loadCommand from "@/utils/command/loadCommand";
 
 export async function activate(context: vscode.ExtensionContext) {
   console.log('Congratulations, your extension "ixdar-vs" mcp is now active!');
@@ -26,7 +27,7 @@ export async function activate(context: vscode.ExtensionContext) {
   });
   const { CommandRegistry } = await import("./utils/command/commandRegistry");
 
-  await fs.loadWorkspaceCommands();
+  await loadCommand.loadWorkspaceCommands();
 
   const commandModules = CommandRegistry.getInstance().getAll();
   console.log(`Loaded ${commandModules.length} command modules from registry`);
