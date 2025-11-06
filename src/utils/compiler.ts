@@ -42,8 +42,8 @@ export function createCompilerHost(
   function resolveModuleNames(
     moduleNames: string[],
     containingFile: string
-  ): ts.ResolvedModule[] {
-    const resolvedModules: ts.ResolvedModule[] = [];
+  ): (ts.ResolvedModule | undefined)[] {
+    const resolvedModules: (ts.ResolvedModule | undefined)[] = [];
     for (const moduleName of moduleNames) {
       // try to use standard resolution
       let result = ts.resolveModuleName(moduleName, containingFile, options, {
@@ -55,11 +55,19 @@ export function createCompilerHost(
       } else {
         // check fallback locations, for simplicity assume that module at location
         // should be represented by '.d.ts' file
+        let resolved = false;
         for (const location of moduleSearchLocations) {
           const modulePath = path.join(location, moduleName + ".d.ts");
           if (fileExists(modulePath)) {
             resolvedModules.push({ resolvedFileName: modulePath });
+            resolved = true;
+            break;
           }
+        }
+        // CRITICAL: Push undefined if module cannot be resolved
+        // TypeScript expects array length to match moduleNames length
+        if (!resolved) {
+          resolvedModules.push(undefined);
         }
       }
     }
@@ -67,17 +75,22 @@ export function createCompilerHost(
   }
 }
 
-export function compile(sourceFiles: string[], moduleSearchLocations: string[]): ts.Program {
+export function compile(
+  sourceFiles: string[], 
+  moduleSearchLocations: string[],
+  outDir: string
+): ts.Program {
   const options: ts.CompilerOptions = {
     module: ts.ModuleKind.CommonJS, 
     target: ts.ScriptTarget.ES2020,
-    outDir: path.join(ts.sys.getCurrentDirectory(), ".ix", "out"),
+    outDir: outDir,
     esModuleInterop: true,
     experimentalDecorators: true,
     emitDecoratorMetadata: true,
-    moduleResolution: ts.ModuleResolutionKind.Node10,
+    moduleResolution: ts.ModuleResolutionKind.NodeJs,
     skipLibCheck: true,
     strict: false,
+    types: ["node", "vscode"],
   };
   const host = createCompilerHost(options, moduleSearchLocations);
   const program = ts.createProgram(sourceFiles, options, host);
