@@ -4,9 +4,9 @@ import {
   type CommandModule,
   type McpResult,
 } from "@/types/command";
-import * as strings from "@/utils/strings";
-import { CommandRegistry, RegisterCommand } from "@/utils/commandRegistry";
-import * as mcp from "@/utils/mcp";
+import * as strings from "@/utils/templating/strings";
+import { CommandRegistry, RegisterCommand } from "@/utils/command/commandRegistry";
+import * as mcp from "@/utils/ai/mcp";
 
 /**
  * ixCommand: In-memory command runner that allows executing any registered command

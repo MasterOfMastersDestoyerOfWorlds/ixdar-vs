@@ -4,10 +4,10 @@ import {
   type CommandModule,
   type McpResult,
 } from "@/types/command";
-import * as strings from "@/utils/strings";
+import * as strings from "@/utils/templating/strings";
 import * as mcp from "@/utils/mcp";
-import { RegisterCommand } from "@/utils/commandRegistry";
-import * as decor from "@/utils/decor";
+import { RegisterCommand } from "@/utils/command/commandRegistry";
+import * as decor from "@/utils/vscode/decor";
 
 /**
  * captureRegex: displays a textbox that accepts regex and turns the text red in the box if the regex is invalid, selects/highlights all of the regex matches in the open file  and then copies them to the copy buffer on enter

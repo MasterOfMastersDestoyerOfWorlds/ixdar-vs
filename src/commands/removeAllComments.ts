@@ -4,11 +4,11 @@ import {
   type CommandModule,
   type McpResult,
 } from "@/types/command";
-import * as strings from "@/utils/strings";
-import * as mcp from "@/utils/mcp";
-import * as parser from "@/utils/parser";
+import * as strings from "@/utils/templating/strings";
+import * as mcp from "@/utils/ai/mcp";
+import * as parser from "@/utils/templating/parser";
 import Parser from "tree-sitter";
-import { RegisterCommand } from "@/utils/commandRegistry";
+import { RegisterCommand } from "@/utils/command/commandRegistry";
 
 /**
  * removeAllComments: Remove all single-line comments from the current file using tree-sitter AST parsing.

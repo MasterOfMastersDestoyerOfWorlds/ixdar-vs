@@ -1,7 +1,8 @@
 import type { ExtensionContext } from "vscode";
 import * as vscode from "vscode";
-import * as strings from "../utils/strings";
-import { runWithAvailabilityGuard } from "../utils/availability";
+import * as strings from "../utils/templating/strings";
+import * as importer from "@/utils/templating/importer";
+import { runWithAvailabilityGuard } from "../utils/command/availability";
 import type Parser from "tree-sitter";
 
 export interface InputSchema {
@@ -73,7 +74,7 @@ export class CommandModuleImpl implements CommandModule {
       allowedRepoNames: repoName ? [repoName] : [],
       languages: languages ?? undefined,
     };
-    const vscodeId: string = strings.extensionName() + "." + commandName;
+    const vscodeId: string = importer.extensionCommandName(commandName);
     this.vscodeCommand = {
       id: vscodeId,
       register: (context: vscode.ExtensionContext) => {

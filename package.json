@@ -3,7 +3,7 @@
   "displayName": "ixdar-vs",
   "description": "Higher level templating and diff automation",
   "publisher": "KriegEterna",
-  "version": "0.0.21",
+  "version": "0.0.25",
   "icon": "images/favicon.ico",
   "repository": {
     "type": "git",
@@ -19,6 +19,36 @@
     "onStartupFinished"
   ],
   "main": "./out/extension.js",
+  "exports": {
+    ".": {
+      "require": "./lib/index.js",
+      "types": "./lib/index.d.ts"
+    },
+    "./command": {
+      "require": "./lib/types/command.js",
+      "types": "./lib/types/command.d.ts"
+    },
+    "./commandRegistry": {
+      "require": "./lib/utils/commandRegistry.js",
+      "types": "./lib/utils/commandRegistry.d.ts"
+    },
+    "./mcp": {
+      "require": "./lib/utils/mcp.js",
+      "types": "./lib/utils/mcp.d.ts"
+    },
+    "./strings": {
+      "require": "./lib/utils/strings.js",
+      "types": "./lib/utils/strings.d.ts"
+    },
+    "./availability": {
+      "require": "./lib/utils/availability.js",
+      "types": "./lib/utils/availability.d.ts"
+    },
+    "./fs": {
+      "require": "./lib/utils/fs.js",
+      "types": "./lib/utils/fs.d.ts"
+    }
+  },
   "contributes": {
     "configuration": {
       "title": "ixdar-vs MCP Server",
@@ -138,10 +168,13 @@
     ]
   },
   "scripts": {
-    "vscode:prepublish": "npm run compile",
-    "compile": "webpack",
+    "vscode:prepublish": "npm run package",
+    "build:lib": "tsc && tsc-alias && copyfiles package.json README.md LICENSE.MD ./lib",
+    "build:webpack": "webpack --mode production",
+    "compile": "npm run build:lib && webpack --mode none",
+    "build": "npm run build:lib && npm run build:webpack",
     "watch": "webpack --mode none --watch",
-    "package": "webpack --mode production",
+    "package": "npm run build:lib && webpack --mode production",
     "pretest": "npm run compile && npm run lint",
     "lint": "eslint src",
     "test": "jest",
@@ -166,6 +199,7 @@
     "raw-loader": "^4.0.2",
     "ts-jest": "^29.1.0",
     "ts-loader": "^9.5.4",
+    "tsc-alias": "^1.8.16",
     "tsconfig-paths-webpack-plugin": "^4.2.0",
     "typescript": "^5.7.3",
     "webpack": "^5.102.1",
@@ -173,6 +207,7 @@
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.0.4",
+    "copyfiles": "^2.4.1",
     "tree-sitter": "^0.21.0",
     "tree-sitter-c-sharp": "^0.21.0",
     "tree-sitter-java": "^0.21.0",

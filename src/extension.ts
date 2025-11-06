@@ -6,8 +6,8 @@ import {
   getActiveLanguageId,
   isAvailable,
   isAvailableForListing,
-} from "@/utils/availability";
-import * as parser from "@/utils/parser";
+} from "@/utils/command/availability";
+import * as parser from "@/utils/templating/parser";
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import {
   ListToolsRequestSchema,
@@ -15,7 +15,7 @@ import {
 } from "@modelcontextprotocol/sdk/types.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
-import * as fs from "@/utils/fs";
+import * as fs from "@/utils/vscode/fs";
 
 export async function activate(context: vscode.ExtensionContext) {
   console.log('Congratulations, your extension "ixdar-vs" mcp is now active!');
@@ -24,7 +24,7 @@ export async function activate(context: vscode.ExtensionContext) {
   commandContext.keys().forEach((key: string) => {
     commandContext(key);
   });
-  const { CommandRegistry } = await import("./utils/commandRegistry");
+  const { CommandRegistry } = await import("./utils/command/commandRegistry");
 
   await fs.loadWorkspaceCommands();
 

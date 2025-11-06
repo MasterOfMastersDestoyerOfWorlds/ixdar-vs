@@ -1,6 +1,6 @@
 import { McpResult } from "../types/command";
 import * as vscode from "vscode";
-import * as strings from "./strings";
+import * as strings from "./templating/strings";
 
 export function executeCommand(
   commandName: string,

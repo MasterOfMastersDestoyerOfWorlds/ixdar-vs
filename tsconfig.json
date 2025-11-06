@@ -1,24 +1,23 @@
 {
-	"compilerOptions": {
-		"module": "es2022",
-		"moduleResolution": "node",
-		"target": "ES2022",
-		"outDir": "out",
-		"lib": [
-			"ES2022"
-		],
-		"types": ["vscode", "node", "jest"],
-		"sourceMap": true,
-		"baseUrl": "./src",
-		"paths": {
-			"@/*": ["./*"]
-		},
-		"rootDir": "src",
-		"strict": true,
-		"esModuleInterop": true,
-		"skipLibCheck": true,
-		"forceConsistentCasingInFileNames": true,
-		"experimentalDecorators": true,
-		"emitDecoratorMetadata": true
-	}
+  "compilerOptions": {
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "target": "ES2022",
+    "outDir": "lib",
+    "lib": ["ES2022"],
+    "types": ["vscode", "node", "jest"],
+    "sourceMap": true,
+    "declaration": true,
+    "baseUrl": "./src",
+    "paths": {
+      "@/*": ["./*"]
+    },
+    "rootDir": "src",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true
+  }
 }

@@ -1,3 +1,4 @@
+
 /**
  * Converts a string to PascalCase.
  * Eg. "my_test-string" => "MyTestString"
@@ -224,9 +225,6 @@ export function isValidIdentifier(str: string): boolean {
   return /^[a-zA-Z_][a-zA-Z0-9_]*$/.test(str);
 }
 
-export function extensionName(): string {
-  return "ixdar-vs";
-}
 
 export function normalizeTsPath(tsPath: string): string {
   return tsPath.replace(/\\/g, "/");
@@ -236,6 +234,3 @@ export function stripLeadingDot(p: string): string {
   return p.startsWith("./") ? p.slice(2) : p;
 }
 
-export function extensionCommandName(commandName: string): string {
-  return `${extensionName()}.${commandName}`;
-}

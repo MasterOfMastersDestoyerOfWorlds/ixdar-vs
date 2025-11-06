@@ -1,14 +1,13 @@
 import * as path from "path";
-import * as vscode from "vscode";
-import * as strings from "@/utils/strings";
+import * as fsNative from "fs";
+import * as fs from "@/utils/vscode/fs";
+import * as compiler from "@/utils/command/compiler";
+import { CommandRegistry } from "@/utils/command/commandRegistry";
 import * as ts from "typescript";
 import * as vm from "vm";
-import * as fsNative from "fs";
-import * as compiler from "@/utils/compiler";
-import { CommandRegistry } from "@/utils/commandRegistry";
-declare const __non_webpack_require__: (id: string) => any;
-// --- Module Loading Constants & Helpers ---
+import * as vscode from "vscode";
 
+declare const __non_webpack_require__: (id: string) => any;
 const TS_RUNTIME_EXTENSIONS = new Set([".ts", ".tsx", ".cts", ".mts"]);
 const JS_PREFERRED_EXTENSIONS = [
   ".js",
@@ -27,36 +26,8 @@ const indexCandidates = fallbackExtensions
   .filter((ext) => ext.length > 0)
   .map((ext) => `index${ext}`);
 
-type JsonRecord = Record<string, unknown>;
-
-function parsePackageRequest(
-  request: string
-): { packageName: string; subpath: string } | undefined {
-  if (!request || request.startsWith(".") || request.startsWith("/")) {
-    return undefined;
-  }
-  const segments = request.split("/");
-  if (request.startsWith("@")) {
-    if (segments.length < 2) return undefined; // e.g. @scope (incomplete)
-    const packageName = `${segments[0]}/${segments[1]}`;
-    const subpath = segments.slice(2).join("/");
-    return { packageName, subpath };
-  }
-  const packageName = segments[0];
-  const subpath = segments.slice(1).join("/");
-  return { packageName, subpath };
-}
-
-function safeStat(filePath: string): fsNative.Stats | undefined {
-  try {
-    return fsNative.statSync(filePath);
-  } catch {
-    return undefined;
-  }
-}
-
 function resolveFileCandidate(basePath: string): string | undefined {
-  const directStat = safeStat(basePath);
+  const directStat = fs.safeStat(basePath);
   if (directStat?.isFile()) {
     return basePath;
   }
@@ -64,7 +35,7 @@ function resolveFileCandidate(basePath: string): string | undefined {
   if (!ext) {
     for (const candidateExt of fallbackExtensions) {
       const candidatePath = `${basePath}${candidateExt}`;
-      if (safeStat(candidatePath)?.isFile()) {
+      if (fs.safeStat(candidatePath)?.isFile()) {
         return candidatePath;
       }
     }
@@ -73,7 +44,7 @@ function resolveFileCandidate(basePath: string): string | undefined {
   if (directoryToCheck) {
     for (const indexFile of indexCandidates) {
       const candidatePath = path.join(directoryToCheck, indexFile);
-      if (safeStat(candidatePath)?.isFile()) {
+      if (fs.safeStat(candidatePath)?.isFile()) {
         return candidatePath;
       }
     }
@@ -110,202 +81,6 @@ function resolveModulePathFromPackage(
   }
   return undefined;
 }
-
-// --- Original Functions (createTemplateFile, makeIxFolder, etc.) ---
-
-export async function createTemplateFile(
-  content: string,
-  fileName: string,
-  workspaceFolder?: vscode.WorkspaceFolder
-): Promise<vscode.Uri> {
-  if (!workspaceFolder) {
-    workspaceFolder = vscode.workspace.workspaceFolders?.[0];
-  }
-  if (!workspaceFolder) {
-    throw new Error("No workspace folder found");
-  }
-  const ixFolder = await makeIxFolder(workspaceFolder);
-  const templateFile = vscode.Uri.joinPath(ixFolder, fileName);
-  await vscode.workspace.fs.writeFile(templateFile, Buffer.from(content));
-  return templateFile;
-}
-
-export async function makeIxFolder(
-  workspaceFolder?: vscode.WorkspaceFolder
-): Promise<vscode.Uri> {
-  if (!workspaceFolder) {
-    workspaceFolder = vscode.workspace.workspaceFolders?.[0];
-  }
-  if (!workspaceFolder) {
-    throw new Error("No workspace folder found");
-  }
-  const ixFolder = vscode.Uri.joinPath(workspaceFolder.uri, ".ix");
-  try {
-    await vscode.workspace.fs.stat(ixFolder);
-  } catch {
-    await vscode.workspace.fs.createDirectory(ixFolder);
-  }
-  vscode.window.showInformationMessage("Creating ixdar workspace...");
-  const ixGitIgnoreUri = vscode.Uri.joinPath(ixFolder, ".gitignore");
-  const ixPackageJsonUri = vscode.Uri.joinPath(ixFolder, "package.json");
-  const ixTsConfigUri = vscode.Uri.joinPath(ixFolder, "tsconfig.json");
-
-  const [workspacePackage, workspaceTsConfig, workspaceGitIgnore] =
-    await Promise.all([
-      readJsonFile(ixPackageJsonUri),
-      readJsonFile(ixTsConfigUri),
-      readFile(ixGitIgnoreUri),
-    ]);
-
-  await Promise.all([
-    ensureIxPackageJson(ixFolder, ixPackageJsonUri, workspacePackage),
-    ensureIxTsConfig(ixFolder, ixTsConfigUri, workspaceTsConfig),
-    ensureIxGitIgnore(ixFolder, ixGitIgnoreUri, workspaceGitIgnore),
-  ]);
-  const terminal = vscode.window.createTerminal({
-    name: "NPM Install",
-    cwd: ixFolder.fsPath,
-  });
-
-  const installComplete = new Promise<void>((resolve) => {
-    const disposable = vscode.window.onDidCloseTerminal((closedTerminal) => {
-      if (closedTerminal === terminal) {
-        disposable.dispose();
-        resolve();
-      }
-    });
-  });
-
-  terminal.show();
-  terminal.sendText("npm i; exit");
-
-  await installComplete;
-
-  return ixFolder;
-}
-
-async function ensureIxPackageJson(
-  ixFolder: vscode.Uri,
-  ixPackageJsonUri: vscode.Uri,
-  workspacePackage: JsonRecord | undefined
-): Promise<void> {
-  const workspaceVersion =
-    typeof workspacePackage?.version === "string"
-      ? workspacePackage.version
-      : undefined;
-  const desiredPackage = {
-    name: "ix-templates",
-    private: true,
-    dependencies: {
-      "ixdar-vs": workspaceVersion ?? "latest",
-    },
-  } satisfies JsonRecord;
-
-  await vscode.workspace.fs.writeFile(
-    ixPackageJsonUri,
-    Buffer.from(JSON.stringify(desiredPackage, null, 2) + "\n", "utf8")
-  );
-}
-
-async function ensureIxTsConfig(
-  ixFolder: vscode.Uri,
-  ixTsConfigUri: vscode.Uri,
-  workspaceTsConfig: JsonRecord | undefined
-): Promise<void> {
-  const rootHasConfig = Boolean(workspaceTsConfig);
-  const compilerOptions =
-    (workspaceTsConfig?.compilerOptions as JsonRecord | undefined) ?? {};
-  const rootBaseUrl =
-    typeof compilerOptions.baseUrl === "string" ? compilerOptions.baseUrl : ".";
-  const rootPaths =
-    (compilerOptions.paths as Record<string, string[]> | undefined) ?? {};
-
-  const normalizedPaths = normalizePathMappings(rootBaseUrl, rootPaths);
-
-  const include: string[] = ["./**/*"];
-  if (normalizedPaths) {
-    include.push("../src/**/*");
-  }
-
-  const ixConfig: JsonRecord = {
-    ...(rootHasConfig ? { extends: "../tsconfig.json" } : {}),
-    compilerOptions: {
-      baseUrl: "..",
-      ...(normalizedPaths ? { paths: normalizedPaths } : {}),
-    },
-    include,
-  };
-
-  await vscode.workspace.fs.writeFile(
-    ixTsConfigUri,
-    Buffer.from(JSON.stringify(ixConfig, null, 2) + "\n", "utf8")
-  );
-}
-
-async function ensureIxGitIgnore(
-  ixFolder: vscode.Uri,
-  ixGitIgnoreUri: vscode.Uri,
-  workspaceGitIgnore: string | undefined
-): Promise<void> {
-  let desiredGitIgnore = workspaceGitIgnore ?? "";
-  if (!desiredGitIgnore.includes("node_modules/**")) {
-    desiredGitIgnore += "node_modules/**\n";
-  }
-  if (!desiredGitIgnore.includes("npm_modules/**")) {
-    desiredGitIgnore += "npm_modules/**\n";
-  }
-  if (!desiredGitIgnore.includes("out/**")) {
-    desiredGitIgnore += "out/**\n";
-  }
-  await vscode.workspace.fs.writeFile(
-    ixGitIgnoreUri,
-    Buffer.from(desiredGitIgnore, "utf8")
-  );
-}
-
-async function readJsonFile(uri: vscode.Uri): Promise<JsonRecord | undefined> {
-  try {
-    const bytes = await vscode.workspace.fs.readFile(uri);
-    const text = Buffer.from(bytes).toString("utf8");
-    return JSON.parse(text) as JsonRecord;
-  } catch (error) {
-    return undefined;
-  }
-}
-
-async function readFile(uri: vscode.Uri): Promise<string | undefined> {
-  try {
-    const bytes = await vscode.workspace.fs.readFile(uri);
-    return Buffer.from(bytes).toString("utf8");
-  } catch (error) {
-    return undefined;
-  }
-}
-
-function normalizePathMappings(
-  baseUrl: string,
-  paths: Record<string, string[]>
-): Record<string, string[]> | undefined {
-  if (!Object.keys(paths).length) {
-    return undefined;
-  }
-
-  const normalizedBase = strings.normalizeTsPath(baseUrl);
-  return Object.fromEntries(
-    Object.entries(paths).map(([alias, targets]) => {
-      const remappedTargets = targets.map((target) => {
-        const normalizedTarget = strings.normalizeTsPath(target);
-        const joined = path.posix.normalize(
-          path.posix.join(normalizedBase, normalizedTarget)
-        );
-        return strings.stripLeadingDot(joined);
-      });
-      return [alias, remappedTargets];
-    })
-  );
-}
-
-// --- Main Command Loading Logic ---
 
 /**
  * Loads command modules from the .ix folder in the workspace.
@@ -520,19 +295,28 @@ async function loadCompiledCommand(
       return dependencyModule.exports;
     }
 
-    // 7. Manual loader for .js and .ts files
-    function loadModuleFromResolvedPath(resolvedPath: string): any {
-      const extension = path.extname(resolvedPath);
-      if (TS_RUNTIME_EXTENSIONS.has(extension)) {
-        return loadTypeScriptDependency(resolvedPath);
-      }
-      // Use the host's require for .js, .json, .node
-      return __non_webpack_require__(resolvedPath);
-    }
-
     // 8. Manual path resolver (no require.resolve)
     function resolveModulePathFallback(moduleName: string): string | undefined {
-      const parsed = parsePackageRequest(moduleName);
+      let parsed: { packageName: string; subpath: string } | undefined;
+
+      if (
+        !moduleName ||
+        moduleName.startsWith(".") ||
+        moduleName.startsWith("/")
+      ) {
+        parsed = undefined;
+      }
+      const segments = moduleName.split("/");
+      if (moduleName.startsWith("@")) {
+        if (segments.length < 2) parsed = undefined; // e.g. @scope (incomplete)
+        const packageName = `${segments[0]}/${segments[1]}`;
+        const subpath = segments.slice(2).join("/");
+        parsed = { packageName, subpath };
+      }
+      const packageName = segments[0];
+      const subpath = segments.slice(1).join("/");
+      parsed = { packageName, subpath };
+
       if (!parsed) return undefined;
 
       for (const basePath of modulePaths) {
@@ -542,7 +326,7 @@ async function loadCompiledCommand(
             parsed.packageName,
             "package.json"
           );
-          if (safeStat(packageJsonPath)?.isFile()) {
+          if (fs.safeStat(packageJsonPath)?.isFile()) {
             return path.dirname(packageJsonPath);
           }
         } catch {}
@@ -573,7 +357,7 @@ async function loadCompiledCommand(
       // Use `module.require` to get the *real* Node.js built-in modules,
       // not the Webpack-bundled "empty" ones.
       if (builtIns.includes(moduleName)) {
-        return __non_webpack_require__(moduleName);
+        return;
       }
 
       // Handle relative paths
@@ -582,13 +366,22 @@ async function loadCompiledCommand(
         const resolvedRelative = path.resolve(currentDir, moduleName);
         const fileCandidate = resolveFileCandidate(resolvedRelative);
         if (fileCandidate) {
-          return loadModuleFromResolvedPath(fileCandidate);
+          return __non_webpack_require__(moduleName);
         }
       }
-      
+
+      if (moduleName.startsWith("@")) {
+        const currentDir = path.dirname(moduleObject.filename);
+        const resolvedRelative = path.resolve(currentDir, moduleName);
+        const fileCandidate = resolveFileCandidate(resolvedRelative);
+        if (fileCandidate) {
+          return __non_webpack_require__(moduleName);
+        }
+      }
+
       const packagePath = resolveModulePathFallback(moduleName);
       if (packagePath) {
-        return loadModuleFromResolvedPath(packagePath);
+        return __non_webpack_require__(moduleName);
       }
 
       throw new Error(

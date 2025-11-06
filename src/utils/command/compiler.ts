@@ -45,7 +45,6 @@ export function createCompilerHost(
   ): (ts.ResolvedModule | undefined)[] {
     const resolvedModules: (ts.ResolvedModule | undefined)[] = [];
     for (const moduleName of moduleNames) {
-      // try to use standard resolution
       let result = ts.resolveModuleName(moduleName, containingFile, options, {
         fileExists,
         readFile,
@@ -53,8 +52,6 @@ export function createCompilerHost(
       if (result.resolvedModule) {
         resolvedModules.push(result.resolvedModule);
       } else {
-        // check fallback locations, for simplicity assume that module at location
-        // should be represented by '.d.ts' file
         let resolved = false;
         for (const location of moduleSearchLocations) {
           const modulePath = path.join(location, moduleName + ".d.ts");
@@ -64,8 +61,6 @@ export function createCompilerHost(
             break;
           }
         }
-        // CRITICAL: Push undefined if module cannot be resolved
-        // TypeScript expects array length to match moduleNames length
         if (!resolved) {
           resolvedModules.push(undefined);
         }

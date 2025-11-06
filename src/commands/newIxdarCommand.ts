@@ -3,9 +3,10 @@ import {
   type CommandModule,
   type McpResult,
 } from "@/types/command";
-import * as aiCodeGenerator from "@/utils/aiCodeGenerator";
-import { RegisterCommand } from "@/utils/commandRegistry";
-import * as strings from "@/utils/strings";
+import * as aiCodeGenerator from "@/utils/ai/aiCodeGenerator";
+import { RegisterCommand } from "@/utils/command/commandRegistry";
+import * as strings from "@/utils/templating/strings";
+import * as importer from "@/utils/templating/importer";
 import * as vscode from "vscode";
 
 function ixdarCommandTemplate(
@@ -60,7 +61,7 @@ export default command;
 
 const commandName = "newIxdarCommand";
 const languages = undefined;
-const repoName = strings.extensionName();
+const repoName = importer.extensionName();
 const commandFunc = async () => {
   const newCommandName = await vscode.window.showInputBox({
     prompt: "Enter a name for your new command (e.g. myNewCommand):",

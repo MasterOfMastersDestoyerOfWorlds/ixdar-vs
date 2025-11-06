@@ -4,11 +4,11 @@ import {
   type CommandModule,
   type McpResult,
 } from "@/types/command";
-import * as strings from "@/utils/strings";
+import * as strings from "@/utils/templating/strings";
 import * as mcp from "@/utils/mcp";
-import { RegisterCommand } from "@/utils/commandRegistry";
-import * as parser from "@/utils/parser";
-import * as decor from "@/utils/decor";
+import { RegisterCommand } from "@/utils/command/commandRegistry";
+import * as parser from "@/utils/templating/parser";
+import * as decor from "@/utils/vscode/decor";
 import type Parser from "tree-sitter";
 import inspectorHtml from "./inspector.html";
 
