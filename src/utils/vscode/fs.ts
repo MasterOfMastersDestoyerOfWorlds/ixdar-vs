@@ -15,6 +15,30 @@ export function safeStat(filePath: string): fsNative.Stats | undefined {
   }
 }
 
+/**
+ * Recursively gets all files in a directory
+ */
+export async function getAllFiles(dirUri: vscode.Uri): Promise<vscode.Uri[]> {
+  const files: vscode.Uri[] = [];
+  const entries = await vscode.workspace.fs.readDirectory(dirUri);
+  
+  for (const [name, type] of entries) {
+    const entryUri = vscode.Uri.joinPath(dirUri, name);
+    
+    if (type === vscode.FileType.Directory) {
+      // Skip node_modules and other common directories
+      if (name !== "node_modules" && name !== ".git" && name !== "out" && name !== "dist") {
+        const subFiles = await getAllFiles(entryUri);
+        files.push(...subFiles);
+      }
+    } else if (type === vscode.FileType.File) {
+      files.push(entryUri);
+    }
+  }
+  
+  return files;
+}
+
 
 export async function createTemplateFile(
   content: string,
