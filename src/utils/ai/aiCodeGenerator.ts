@@ -11,7 +11,7 @@ interface AIConfig {
  * Get AI configuration from VS Code settings
  */
 function getAIConfig(): AIConfig {
-  const config = vscode.workspace.getConfiguration("ixdar-vs.ai");
+  const config = vscode.workspace.getConfiguration("${importer.EXTENSION_NAME}.ai");
   return {
     provider: config.get<"gemini" | "openai" | "anthropic">(
       "provider",
@@ -198,7 +198,7 @@ async function callAI(prompt: string): Promise<string> {
 
   if (!config.apiKey) {
     throw new Error(
-      `API key not configured. Please set ixdar-vs.ai.apiKey in settings.`
+      `API key not configured. Please set ${importer.EXTENSION_NAME}.ai.apiKey in settings.`
     );
   }
 
@@ -260,7 +260,7 @@ export async function generateHighLevelCode(
   description: string,
   commandNames: string[]
 ): Promise<string> {
-  const prompt = `Generate TypeScript code that orchestrates these ixdar-vs commands to accomplish the following task:
+  const prompt = `Generate TypeScript code that orchestrates these ${importer.EXTENSION_NAME} commands to accomplish the following task:
 
 Description: ${description}
 

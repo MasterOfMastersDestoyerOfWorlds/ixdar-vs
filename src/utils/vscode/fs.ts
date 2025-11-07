@@ -1,6 +1,7 @@
 import * as path from "path";
 import * as vscode from "vscode";
 import * as strings from "@/utils/templating/strings";
+import * as importer from "@/utils/templating/importer";
 
 type JsonRecord = Record<string, unknown>;
 
@@ -137,7 +138,7 @@ async function ensureIxPackageJson(
     name: "ix-templates",
     private: true,
     dependencies: {
-      "ixdar-vs": workspaceVersion ?? "latest",
+       [importer.EXTENSION_NAME]: workspaceVersion ?? "latest",
     },
   } satisfies JsonRecord;
 

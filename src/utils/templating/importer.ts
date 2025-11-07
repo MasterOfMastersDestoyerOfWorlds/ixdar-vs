@@ -8,7 +8,7 @@ export function getImport(...moduleExports: any[]): string {
   for (const moduleExport of moduleExports) {
     if (moduleExport && typeof moduleExport === "object") {
       result +=
-        `import * as ${moduleExport.__moduleName} from 'ixdar-vs/src${moduleExport.__modulePath}';` +
+        `import * as ${moduleExport.__moduleName} from '${EXTENSION_NAME}/src${moduleExport.__modulePath}';` +
         "\n";
     }
   }
@@ -42,15 +42,15 @@ export function extensionCallSign(): string {
   return "ixdarVs";
 }
 
-export function extensionName(): string {
-  return "ixdar-vs";
-}
+export const EXTENSION_NAME = "ixdar-vs";
+
+export const EXTENSION_PREFIX = "ixdar-vs.";
 
 export function extensionCommandName(commandName: string): string {
-  return `${extensionName()}.${commandName}`;
+  return `${EXTENSION_NAME}.${commandName}`;
 }
 
 export function getIxdarImport() {
-  return `import * as ${extensionCallSign()} from "${extensionName()}"`;
+  return `import * as ${extensionCallSign()} from "${EXTENSION_NAME}"`;
 }
 

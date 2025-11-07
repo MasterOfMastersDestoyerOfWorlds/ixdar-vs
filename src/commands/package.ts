@@ -9,7 +9,7 @@ import * as fs from "@/utils/vscode/fs";
 
 const commandName = "package";
 const languages = undefined;
-const repoName = importer.extensionName();
+const repoName = importer.EXTENSION_NAME;
 
 const commandFunc = async () => {
   const workspaceFolder = await fs.getWorkspaceFolder();
@@ -64,7 +64,7 @@ const commandFunc = async () => {
       }, 500);
     });
     
-    terminal.sendText(`npx @vscode/vsce package -i .vscode/ixdar-vs-${newVersion}.vsix`);
+    terminal.sendText(`npx @vscode/vsce package -i .vscode/${importer.EXTENSION_NAME}-${newVersion}.vsix`);
     terminal.sendText("npm publish ./lib --access public");
 
     vscode.window.showInformationMessage("Package created successfully!");
@@ -101,7 +101,7 @@ const commandFunc = async () => {
   }
 };
 
-const mcpFunc = mcp.executeCommand(commandName, () => `Extension ${importer.extensionName()} packaged and installed`);
+const mcpFunc = mcp.executeCommand(commandName, () => `Extension ${importer.EXTENSION_NAME} packaged and installed`);
 
 const description = "Increment patch version, package the extension into a VSIX file, and install it.";
 const inputSchema = {

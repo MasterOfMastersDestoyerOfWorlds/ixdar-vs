@@ -16,9 +16,12 @@ import {
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import * as loadCommand from "@/utils/command/loadCommand";
-
+import * as mcp from "@/utils/ai/mcp";
+import * as importer from "@/utils/templating/importer";
 export async function activate(context: vscode.ExtensionContext) {
-  console.log('Congratulations, your extension "ixdar-vs" mcp is now active!');
+  console.log(
+    `Congratulations, your extension "${importer.EXTENSION_NAME}" mcp is now active!`
+  );
 
   const commandContext = require.context("./commands", true, /\.ts$/);
   commandContext.keys().forEach((key: string) => {
@@ -66,7 +69,7 @@ export async function activate(context: vscode.ExtensionContext) {
     })
   );
 
-  const config = vscode.workspace.getConfiguration("ixdar-vs");
+  const config = vscode.workspace.getConfiguration(importer.EXTENSION_NAME);
   const mcpEnabled = config.get<boolean>("mcp.enabled", true);
 
   if (!mcpEnabled) {
@@ -77,7 +80,7 @@ export async function activate(context: vscode.ExtensionContext) {
   const transportType = config.get<string>("mcp.transport", "stdio");
   const httpPort = config.get<number>("mcp.httpPort", 45555);
 
-  const mcp = new Server(
+  const mcpServer = new Server(
     {
       name: "ixdar-tools",
       version: "0.0.1",
@@ -94,7 +97,7 @@ export async function activate(context: vscode.ExtensionContext) {
     dynamicTools.set(cmd.name, cmd);
   }
 
-  mcp.setRequestHandler(ListToolsRequestSchema, async () => {
+  mcpServer.setRequestHandler(ListToolsRequestSchema, async () => {
     const repoName = await getActiveRepoName();
     const langId = getActiveLanguageId();
     const dynamic = Array.from(dynamicTools.values())
@@ -105,15 +108,14 @@ export async function activate(context: vscode.ExtensionContext) {
     const tools = [
       {
         name: "list_commands",
-        description:
-          "List VS Code commands starting with a prefix (default: ixdar-vs.)",
+        description: `List VS Code commands starting with a prefix (default: ${importer.EXTENSION_PREFIX})`,
         inputSchema: {
           type: "object",
           properties: {
             prefix: {
               type: "string",
               description: "Command prefix to filter by",
-              default: "ixdar-vs.",
+              default: `${importer.EXTENSION_PREFIX}`,
             },
           },
         },
@@ -143,118 +145,52 @@ export async function activate(context: vscode.ExtensionContext) {
     return { tools };
   });
 
-  mcp.setRequestHandler(
+  mcpServer.setRequestHandler(
     CallToolRequestSchema,
     async (request: any): Promise<any> => {
       try {
         switch (request.params.name) {
           case "list_commands": {
-            const prefix =
-              (request.params.arguments?.prefix as string) ?? "ixdar-vs.";
-            const allCommands = await vscode.commands.getCommands(true);
-            const filtered = allCommands.filter((id) => id.startsWith(prefix));
-            return {
-              content: [
-                {
-                  type: "text",
-                  text: JSON.stringify({ commands: filtered }, null, 2),
-                },
-              ],
-            };
+            return mcp.listIxCommads(
+              request.params.arguments?.prefix as string
+            );
           }
 
           case "execute_vscode_command": {
             const commandId = request.params.arguments?.command as string;
             const args = (request.params.arguments?.args as any[]) ?? [];
             if (!commandId) {
-              return {
-                content: [
-                  {
-                    type: "text",
-                    text: JSON.stringify({ error: "Command ID is required" }),
-                  },
-                ],
-                isError: true,
-              };
+              return mcp.returnMcpError("Command ID is required");
             }
             await vscode.commands.executeCommand(commandId, ...args);
-            return {
-              content: [
-                {
-                  type: "text",
-                  text: JSON.stringify({
-                    success: true,
-                    message: `Executed command: ${commandId}`,
-                  }),
-                },
-              ],
-            };
+            return mcp.successMcpResult(`Executed command: ${commandId}`);
           }
 
           default: {
             const toolName = request.params.name as string;
             const mod = dynamicTools.get(toolName);
             if (!mod || !mod.mcp) {
-              return {
-                content: [
-                  {
-                    type: "text",
-                    text: JSON.stringify({
-                      error: `Unknown tool: ${toolName}`,
-                    }),
-                  },
-                ],
-                isError: true,
-              };
+              return mcp.returnMcpError(`Unknown tool: ${toolName}`);
             }
             const repoName = await getActiveRepoName();
             const langId = getActiveLanguageId();
             if (!isAvailable(mod.meta, repoName, langId)) {
-              return {
-                content: [
-                  {
-                    type: "text",
-                    text: JSON.stringify({
-                      error:
-                        "Tool not available in this repository or language",
-                    }),
-                  },
-                ],
-                isError: true,
-              };
+              return mcp.returnMcpError(
+                `Tool not available in this repository or language`
+              );
             }
             const validation = CommandModuleImpl.isValidRequest(
               request.params.arguments,
               mod.mcp.tool.inputSchema
             );
             if (!validation.valid) {
-              return {
-                content: [
-                  {
-                    type: "text",
-                    text: JSON.stringify({
-                      error: validation.errors.join(", "),
-                    }),
-                  },
-                ],
-                isError: true,
-              };
+              return mcp.returnMcpError(validation.errors.join(", "));
             }
             return await mod.mcp.call(request.params.arguments ?? {});
           }
         }
       } catch (error: any) {
-        return {
-          content: [
-            {
-              type: "text",
-              text: JSON.stringify({
-                error: error.message ?? "Unknown error occurred",
-              }),
-            },
-          ],
-          isError: true,
-        };
+        return mcp.returnMcpError(error.message ?? "Unknown error occurred");
       }
     }
   );
@@ -317,8 +253,8 @@ export async function activate(context: vscode.ExtensionContext) {
           const message =
             `Port ${httpPort} is already in use. Please either:\n` +
             `1. Stop the process using that port, or\n` +
-            `2. Change the port in settings: ixdar-vs.mcp.httpPort\n` +
-            `3. Disable MCP server in settings: ixdar-vs.mcp.enabled`;
+            `2. Change the port in settings: ${importer.EXTENSION_NAME}.mcp.httpPort\n` +
+            `3. Disable MCP server in settings: ${importer.EXTENSION_NAME}.mcp.enabled`;
           vscode.window.showErrorMessage(message);
           console.error(message);
           resolve();
@@ -332,7 +268,7 @@ export async function activate(context: vscode.ExtensionContext) {
     console.error("MCP server (stdio) started for ixdar-tools");
   }
 
-  await mcp.connect(transport);
+  await mcpServer.connect(transport);
 
   context.subscriptions.push({
     dispose: async () => {
@@ -340,7 +276,7 @@ export async function activate(context: vscode.ExtensionContext) {
         if (httpServer) {
           httpServer.close();
         }
-        await mcp.close();
+        await mcpServer.close();
       } catch (error) {
         console.error("Error closing MCP server:", error);
       }

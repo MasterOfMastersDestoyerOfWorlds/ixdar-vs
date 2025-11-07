@@ -1,7 +1,7 @@
 import { McpResult } from "@/types/command";
 import * as vscode from "vscode";
 import * as importer from "@/utils/templating/importer";
-
+import * as strings from "@/utils/templating/strings";
 export function executeCommand(
   commandName: string,
   message: string | ((args: any) => string)
@@ -47,4 +47,10 @@ export function successMcpResult(result: any): McpResult {
     success: true,
     result: JSON.stringify(result, null, 2),
   });
+}
+export async function listIxCommads(prefix?: string): Promise<any> {
+  prefix = prefix ?? (importer.EXTENSION_PREFIX as string);
+  const allCommands = await vscode.commands.getCommands(true);
+  const filtered = allCommands.filter((id) => id.startsWith(prefix));
+  return returnMcpResult({ commands: filtered });
 }

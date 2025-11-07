@@ -62,7 +62,7 @@ export default command;
 
 const commandName = "newIxdarCommand";
 const languages = undefined;
-const repoName = importer.extensionName();
+const repoName = importer.EXTENSION_NAME;
 const commandFunc = async () => {
   const newCommandName = await inputs.getCommandNameInput();
   const newCommandDescription = await inputs.getCommandDescriptionInput();

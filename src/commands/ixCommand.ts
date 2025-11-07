@@ -41,7 +41,7 @@ const inputSchema = {
     commandName: {
       type: "string",
       description:
-        "The name or ID of the command to execute (e.g., 'newIxdarCommand' or 'ixdar-vs.newIxdarCommand')",
+        "The name or ID of the command to execute (e.g., 'newIxdarCommand' or '${importer.EXTENSION_NAME}.newIxdarCommand')",
     },
     args: {
       type: "object",
