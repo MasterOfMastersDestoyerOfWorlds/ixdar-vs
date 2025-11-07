@@ -6,6 +6,8 @@ import {
 } from "@/types/command";
 import * as commandRegistry from "@/utils/command/commandRegistry";
 import * as mcp from "@/utils/ai/mcp";
+import * as inputs from "@/utils/vscode/input";
+import { CommandQuickPickItem } from "@/utils/command/commandRegistry";
 
 /**
  * ixCommand: In-memory command runner that allows executing any registered command
@@ -16,29 +18,8 @@ const languages = undefined;
 const repoName = undefined;
 const commandFunc = async () => {
   const items = commandRegistry.getMcpCommandQuickPickItems();
-  if (items.length === 0) {
-    return;
-  }
-  const selected = await vscode.window.showQuickPick(items, {
-    placeHolder: "Select a command to execute",
-    matchOnDescription: true,
-    matchOnDetail: true,
-  });
-
-  if (!selected) {
-    return;
-  }
-
-  try {
-    await vscode.commands.executeCommand(
-      selected.commandModule.vscodeCommand.id
-    );
-    vscode.window.showInformationMessage(`Executed: ${selected.label}`);
-  } catch (error: any) {
-    vscode.window.showErrorMessage(
-      `Failed to execute command: ${error.message}`
-    );
-  }
+  const selected = await inputs.selectCommandQuickPickItem(items);
+  await commandRegistry.executeCommand(selected.commandModule);
 };
 
 const mcpFunc = async (args: any): Promise<McpResult> => {

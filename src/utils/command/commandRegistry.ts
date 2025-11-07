@@ -105,13 +105,12 @@ export async function getVscodeCommandQuickPickItems(): Promise<
   CommandQuickPickItem[]
 > {
   const vscodeCommands = await vscode.commands.getCommands(true);
-  const commonVSCodeCommands = vscodeCommands
-    .filter(
-      (cmd) =>
-        cmd.startsWith("editor.action.") ||
-        cmd.startsWith("workbench.action.") ||
-        cmd.startsWith("extension.")
-    );
+  const commonVSCodeCommands = vscodeCommands.filter(
+    (cmd) =>
+      cmd.startsWith("editor.action.") ||
+      cmd.startsWith("workbench.action.") ||
+      cmd.startsWith("extension.")
+  );
   return commonVSCodeCommands.map((cmd) => ({
     label: `${cmd}`,
     description: "VS Code command",
@@ -138,21 +137,31 @@ export async function getVscodeCommandQuickPickItems(): Promise<
   }));
 }
 
+export class CommandRegistryError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "CommandRegistryError";
+  }
+}
+
 export function getMcpCommandQuickPickItems(): CommandQuickPickItem[] {
   const registry = CommandRegistry.getInstance();
   const allCommands = registry.getAllMcpCommands();
 
   if (allCommands.length === 0) {
-    vscode.window.showWarningMessage("No commands are registered.");
-    return [];
+    throw new CommandRegistryError("No commands are registered.");
   }
 
-  return allCommands.map((cmd) => ({
+  const items = allCommands.map((cmd) => ({
     label: cmd.vscodeCommand.id,
     description: cmd.description,
     detail: `Category: ${cmd.meta.category}${cmd.meta.languages ? ` | Languages: ${cmd.meta.languages.join(", ")}` : ""}`,
     commandModule: cmd,
   }));
+  if (items.length === 0) {
+    throw new CommandRegistryError("No commands are registered.");
+  }
+  return items;
 }
 
 export function findCommandById(id: string): CommandModule | McpResult {
@@ -179,4 +188,14 @@ export function findCommandById(id: string): CommandModule | McpResult {
     });
   }
   return targetCommand;
+}
+export async function executeCommand(commandModule: CommandModule) {
+  try {
+    await vscode.commands.executeCommand(commandModule.vscodeCommand.id);
+    vscode.window.showInformationMessage(`Executed: ${commandModule.name}`);
+  } catch (error: any) {
+    throw new CommandRegistryError(
+      `Failed to execute command: ${error.message}`
+    );
+  }
 }

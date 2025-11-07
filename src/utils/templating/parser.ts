@@ -4,6 +4,14 @@ import JavaScript from "tree-sitter-javascript";
 import Java from "tree-sitter-java";
 import Python from "tree-sitter-python";
 import CSharp from "tree-sitter-c-sharp";
+import { MethodInfo } from "@/types/parser";
+
+export class ParsingError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "ParsingError";
+  }
+}
 
 /**
  * Cache entry for a parsed document
@@ -43,14 +51,14 @@ function createParser(language: any): Parser {
 /**
  * Get the appropriate parser for a language ID
  */
-export function getParserForLanguage(languageId: string): Parser | null {
+export function getParserForLanguage(languageId: string): Parser {
   const normalizedLangId = languageId.toLowerCase();
 
   if (normalizedLangId in parsers) {
     return parsers[normalizedLangId as keyof typeof parsers];
   }
 
-  return null;
+  throw new ParsingError("Language not supported: " + languageId);
 }
 
 export function getLanguage(languageId: string): any | null {
@@ -73,11 +81,10 @@ export function getLanguage(languageId: string): any | null {
       case "csharp":
         return CSharp;
       default:
-        return null;
+        throw new ParsingError("Language not supported: " + languageId);
     }
   }
-
-  return null;
+  throw new ParsingError("Language not supported: " + languageId);
 }
 /**
  * Get the parse tree for a document, using cache when possible
@@ -88,29 +95,17 @@ export function getLanguage(languageId: string): any | null {
 export function getParseTree(
   document: vscode.TextDocument,
   oldTree?: Parser.Tree
-): Parser.Tree | null {
+): Parser.Tree {
   const parser = getParserForLanguage(document.languageId);
-
-  if (!parser) {
-    return null;
-  }
-
   const uri = document.uri.toString();
   const version = document.version;
-
-  // Check cache first
   const cached = parseCache.get(uri);
   if (cached && cached.version === version) {
     return cached.tree;
   }
-
-  // Parse the document (incrementally if we have an old tree)
   const text = document.getText();
   const tree = parser.parse(text, oldTree);
-
-  // Update cache
   parseCache.set(uri, { tree, version });
-
   return tree;
 }
 
@@ -275,7 +270,65 @@ export function executeQuery(
       })),
     }));
   } catch (error) {
-    return [];
+    throw new ParsingError("Error executing query: " + error);
   }
 }
 
+export function extractMethods(
+  tree: Parser.Tree,
+  document: vscode.TextDocument,
+  language: any
+): MethodInfo[] {
+  const queryString = getMethodQuery(document.languageId);
+  if (!queryString) {
+    throw new ParsingError("No query string found for this language.");
+  }
+
+  const methods: MethodInfo[] = [];
+  const matches = executeQuery(tree, queryString, language);
+
+  for (const match of matches) {
+    let functionNode: Parser.SyntaxNode | null = null;
+    let nameNode: Parser.SyntaxNode | null = null;
+
+    for (const capture of match.captures) {
+      if (capture.name === "function") {
+        functionNode = capture.node;
+      } else if (capture.name === "name") {
+        nameNode = capture.node;
+      }
+    }
+
+    if (functionNode) {
+      const text = document.getText(
+        new vscode.Range(
+          document.positionAt(functionNode.startIndex),
+          document.positionAt(functionNode.endIndex)
+        )
+      );
+
+      const name = nameNode
+        ? document.getText(
+            new vscode.Range(
+              document.positionAt(nameNode.startIndex),
+              document.positionAt(nameNode.endIndex)
+            )
+          )
+        : `anonymous_${functionNode.startIndex}`;
+
+      methods.push({
+        name,
+        node: functionNode,
+        text,
+        startPosition: document.positionAt(functionNode.startIndex),
+        endPosition: document.positionAt(functionNode.endIndex),
+      });
+    }
+  }
+
+  if (methods.length === 0) {
+    throw new ParsingError("No methods or functions found in this file.");
+  }
+
+  return methods;
+}

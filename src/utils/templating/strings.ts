@@ -234,3 +234,7 @@ export function stripLeadingDot(p: string): string {
   return p.startsWith("./") ? p.slice(2) : p;
 }
 
+
+export function escapeRegex(variation: string) {
+  return variation.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
