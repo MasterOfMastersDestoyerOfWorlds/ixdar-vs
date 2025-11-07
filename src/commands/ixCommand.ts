@@ -26,20 +26,10 @@ const mcpFunc = async (args: any): Promise<McpResult> => {
   try {
     const commandName = args.commandName;
     const targetCommand = commandRegistry.findCommandById(commandName);
-
-    if (targetCommand instanceof McpResult) {
-      return targetCommand;
-    }
-
     const result = await targetCommand.mcp?.call(args.args || {});
-
-    return mcp.returnMcpResult({
-      success: true,
-      executedCommand: targetCommand.vscodeCommand.id,
-      result,
-    });
+    return mcp.successMcpResult(result);
   } catch (error: any) {
-    return mcp.returnMcpResult({ error: error.message });
+    return mcp.returnMcpError(error.message);
   }
 };
 

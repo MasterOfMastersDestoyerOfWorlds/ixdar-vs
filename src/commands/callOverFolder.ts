@@ -11,7 +11,8 @@ import {
 } from "@/utils/command/commandRegistry";
 import * as path from "path";
 import * as fs from "@/utils/vscode/fs";
-import { commandRegistry } from "..";
+import * as commandRegistry from "@/utils/command/commandRegistry";
+import * as inputs from "@/utils/vscode/input";
 /**
  * callOverFolder: Call any ix command or vscode command over all files and sub folders of a given folder
  */
@@ -33,30 +34,11 @@ const commandFunc = async () => {
     return;
   }
 
+  const allCommands = await commandRegistry.getAllCommandQuickPickItems();
+  const selectedCommand = await inputs.selectCommandQuickPickItem(allCommands);
+
   const selectedFolder = folderUri[0];
-
-  // Step 2: Select command to execute
-  const registry = CommandRegistry.getInstance();
-  const allCommands = registry.getAllMcpCommands();
-
-  const vscodeItems = await commandRegistry.getVscodeCommandQuickPickItems();
-  const items = commandRegistry.getMcpCommandQuickPickItems();
-  const allItems = [ ...items,...vscodeItems];
-  const selectedCommand = await vscode.window.showQuickPick(allItems, {
-    placeHolder: "Select a command to execute",
-    matchOnDescription: true,
-    matchOnDetail: true,
-  });
-  if (!selectedCommand) {
-    return;
-  }
-
   const files = await fs.getAllFiles(selectedFolder);
-
-  if (files.length === 0) {
-    vscode.window.showWarningMessage("No files found in the selected folder.");
-    return;
-  }
 
   let successCount = 0;
   let errorCount = 0;

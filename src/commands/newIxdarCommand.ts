@@ -11,7 +11,8 @@ import * as vscode from "vscode";
 import * as mcp from "@/utils/ai/mcp";
 import * as commandRegistry from "@/utils/command/commandRegistry";
 import * as commandModule from "@/types/command";
-
+import * as inputs from "@/utils/vscode/input";
+import * as fs from "@/utils/vscode/fs";
 function ixdarCommandTemplate(
   additionalImports: string,
   newCommandName: any,
@@ -63,74 +64,8 @@ const commandName = "newIxdarCommand";
 const languages = undefined;
 const repoName = importer.extensionName();
 const commandFunc = async () => {
-  const newCommandName = await vscode.window.showInputBox({
-    prompt: "Enter a name for your new command (e.g. myNewCommand):",
-    validateInput: (value) => {
-      if (!value || !strings.isValidIdentifier(value)) {
-        return "Please enter a valid TypeScript identifier.";
-      }
-      return null;
-    },
-  });
-  if (!newCommandName) {
-    return;
-  }
-
-  const newCommandDescription = await vscode.window.showInputBox({
-    prompt: "Enter a description that we will use to build this command",
-  });
-  if (!newCommandDescription) {
-    return;
-  }
-
-  const commandTypeSelection = await vscode.window.showQuickPick(
-    [
-      {
-        label: "Basic Template",
-        value: "basic",
-        description: "Empty template with name and description only",
-      },
-      {
-        label: "Low-Level Command (AI)",
-        value: "low-level",
-        description: "AI generates custom implementation code",
-      },
-      {
-        label: "High-Level Command (AI)",
-        value: "high-level",
-        description: "AI generates code that calls other ix commands",
-      },
-    ],
-    { placeHolder: "Select command type" }
-  );
-
-  if (!commandTypeSelection) {
-    return;
-  }
-
-  const commandType = commandTypeSelection.value as
-    | "basic"
-    | "low-level"
-    | "high-level";
-
-  let commandNames: string[] = [];
-  if (commandType === "high-level") {
-    const commandNamesInput = await vscode.window.showInputBox({
-      prompt:
-        "Enter command names to orchestrate (comma-separated, e.g., removeAllComments, package)",
-      placeHolder: "command1, command2, command3",
-    });
-
-    if (!commandNamesInput) {
-      return;
-    }
-
-    commandNames = commandNamesInput
-      .split(",")
-      .map((c) => c.trim())
-      .filter((c) => c.length > 0);
-  }
-
+  const newCommandName = await inputs.getCommandNameInput();
+  const newCommandDescription = await inputs.getCommandDescriptionInput();
   const wsFolders = vscode.workspace.workspaceFolders;
   if (!wsFolders || wsFolders.length === 0) {
     vscode.window.showErrorMessage("No workspace folder is open.");
@@ -146,48 +81,10 @@ const commandFunc = async () => {
     `${newCommandName}.ts`
   );
 
-  try {
-    await vscode.workspace.fs.stat(newFileUri);
-    vscode.window.showWarningMessage(
-      `File for command '${newCommandName}' already exists.`
-    );
-    return;
-  } catch {}
+  await fs.checkFileExists(newFileUri);
 
   let commandFuncBody = "";
   let additionalImports = "";
-
-  if (commandType === "low-level") {
-    try {
-      vscode.window.showInformationMessage(
-        "Generating low-level command code with AI..."
-      );
-      commandFuncBody = await aiCodeGenerator.generateLowLevelCode(
-        newCommandDescription
-      );
-    } catch (error: any) {
-      vscode.window.showErrorMessage(
-        `Failed to generate code: ${error.message}`
-      );
-      return;
-    }
-  } else if (commandType === "high-level") {
-    try {
-      vscode.window.showInformationMessage(
-        "Generating high-level orchestration code with AI..."
-      );
-      commandFuncBody = await aiCodeGenerator.generateHighLevelCode(
-        newCommandDescription,
-        commandNames
-      );
-      additionalImports = `import { CommandRegistry } from "@/utils/commandRegistry";\n`;
-    } catch (error: any) {
-      vscode.window.showErrorMessage(
-        `Failed to generate code: ${error.message}`
-      );
-      return;
-    }
-  }
 
   const indentedBody = commandFuncBody
     .split("\n")
@@ -201,14 +98,7 @@ const commandFunc = async () => {
     indentedBody
   );
 
-  await vscode.workspace.fs.createDirectory(commandsFolderUri);
-  await vscode.workspace.fs.writeFile(
-    newFileUri,
-    Buffer.from(template, "utf8")
-  );
-  vscode.window.showInformationMessage(
-    `New command file created: ${newFileUri.fsPath}`
-  );
+  await fs.createFile(newFileUri, template);
   await vscode.window.showTextDocument(newFileUri);
 };
 
@@ -216,10 +106,6 @@ const mcpFunc = async (args: any): Promise<McpResult> => {
   try {
     const newCommandName = args.newCommandName;
     const newCommandDescription = args.description || "";
-    const commandType = (args.commandType || "basic") as
-      | "basic"
-      | "low-level"
-      | "high-level";
     const commandNamesInput = args.commandNames || "";
 
     if (!newCommandName) {
@@ -288,66 +174,8 @@ const mcpFunc = async (args: any): Promise<McpResult> => {
     } catch {}
 
     let commandNames: string[] = [];
-    if (commandType === "high-level") {
-      commandNames = commandNamesInput
-        .split(",")
-        .map((c: string) => c.trim())
-        .filter((c: string) => c.length > 0);
-    }
-
     let commandFuncBody = "";
     let additionalImports = "";
-
-    if (commandType === "low-level") {
-      if (!newCommandDescription) {
-        return {
-          content: [
-            {
-              type: "text",
-              text: JSON.stringify({
-                error: "description is required for low-level commands",
-              }),
-            },
-          ],
-          isError: true,
-        };
-      }
-      commandFuncBody = await aiCodeGenerator.generateLowLevelCode(
-        newCommandDescription
-      );
-    } else if (commandType === "high-level") {
-      if (!newCommandDescription) {
-        return {
-          content: [
-            {
-              type: "text",
-              text: JSON.stringify({
-                error: "description is required for high-level commands",
-              }),
-            },
-          ],
-          isError: true,
-        };
-      }
-      if (commandNames.length === 0) {
-        return {
-          content: [
-            {
-              type: "text",
-              text: JSON.stringify({
-                error: "commandNames is required for high-level commands",
-              }),
-            },
-          ],
-          isError: true,
-        };
-      }
-      commandFuncBody = await aiCodeGenerator.generateHighLevelCode(
-        newCommandDescription,
-        commandNames
-      );
-      additionalImports = `import { CommandRegistry } from "@/utils/commandRegistry";\n`;
-    }
 
     const indentedBody = commandFuncBody
       .split("\n")
@@ -376,7 +204,6 @@ const mcpFunc = async (args: any): Promise<McpResult> => {
               success: true,
               message: `Command ${newCommandName} created successfully`,
               filePath: newFileUri.fsPath,
-              commandType,
             },
             null,
             2
@@ -407,12 +234,6 @@ const inputSchema = {
       type: "string",
       description:
         "Description of what the command should do (required for AI-generated commands)",
-    },
-    commandType: {
-      type: "string",
-      enum: ["basic", "low-level", "high-level"],
-      description:
-        "Type of command: basic (empty template), low-level (AI generates implementation), high-level (AI generates orchestration)",
     },
     commandNames: {
       type: "string",

@@ -4,6 +4,7 @@ import { CommandModuleImpl, type CommandModule } from "@/types/command";
 import { RegisterCommand } from "@/utils/command/commandRegistry";
 import * as parser from "@/utils/templating/parser";
 import type Parser from "tree-sitter";
+import * as inputs from "@/utils/vscode/input";
 
 /**
  * growSelection: Grows the current selection to the containing tree-sitter node
@@ -12,18 +13,9 @@ const commandName = "growSelection";
 const languages = undefined;
 const repoName = undefined;
 const commandFunc = async () => {
-  const editor = vscode.window.activeTextEditor;
-  if (!editor) {
-    return;
-  }
-  
+  const editor = inputs.getActiveEditor();  
   const document = editor.document;
   const tree = parser.getParseTree(document);
-  if (!tree) {
-    vscode.window.showErrorMessage("Tree-sitter not supported for this language");
-    return;
-  }
-  
   const selection = editor.selection;
   const startOffset = document.offsetAt(selection.start);
   const endOffset = document.offsetAt(selection.end);
@@ -35,18 +27,7 @@ const commandFunc = async () => {
     return;
   }
   
-  const findLCA = (node1: Parser.SyntaxNode, node2: Parser.SyntaxNode): Parser.SyntaxNode => {
-    let current: Parser.SyntaxNode | null = node1;
-    while (current) {
-      if (current.startIndex <= node2.startIndex && current.endIndex >= node2.endIndex) {
-        return current;
-      }
-      current = current.parent;
-    }
-    return tree.rootNode;
-  };
-  
-  const lca = findLCA(startNode, endNode);
+  const lca = parser.findLCA(startNode, endNode, tree);
   
   const alreadyAtLCA = lca.startIndex === startOffset && lca.endIndex === endOffset;
   const targetNode = (alreadyAtLCA && lca.parent) ? lca.parent : lca;

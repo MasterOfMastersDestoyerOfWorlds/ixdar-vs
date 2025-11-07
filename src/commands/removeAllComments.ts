@@ -8,6 +8,7 @@ import * as mcp from "@/utils/ai/mcp";
 import * as parser from "@/utils/templating/parser";
 import Parser from "tree-sitter";
 import { RegisterCommand } from "@/utils/command/commandRegistry";
+import * as inputs from "@/utils/vscode/input";
 
 /**
  * removeAllComments: Remove all single-line comments from the current file using tree-sitter AST parsing.
@@ -25,25 +26,13 @@ const languages = [
 const repoName = undefined;
 
 export const commandFunc = async (parseTree?: Parser.Tree) => {
-  const editor = vscode.window.activeTextEditor;
-  if (!editor) {
-    vscode.window.showErrorMessage("No active editor found.");
-    return;
-  }
+  const editor = inputs.getActiveEditor();
 
   const document = editor.document;
   const languageId = document.languageId;
 
-  const tree = parseTree || parser.getParseTree(document);
+  const tree = parseTree || await parser.getParseTree(document);
   const language = parser.getLanguage(languageId);
-  if (!language) {
-    vscode.window.showErrorMessage("Failed to get parser for language.");
-    return;
-  }
-  if (!tree) {
-    vscode.window.showErrorMessage("Failed to parse document.");
-    return;
-  }
 
   const lineCommentKeyword = parser.getLineCommentKeyword(languageId);
   const commentSymbol = parser.getCommentSymbol(languageId);

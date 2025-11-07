@@ -91,6 +91,7 @@ export function getLanguage(languageId: string): any | null {
  * @param document The VS Code document to parse
  * @param oldTree Optional previous tree for incremental parsing
  * @returns The parse tree, or null if language not supported
+ * @throws ParsingError if the document cannot be parsed
  */
 export function getParseTree(
   document: vscode.TextDocument,
@@ -106,6 +107,11 @@ export function getParseTree(
   const text = document.getText();
   const tree = parser.parse(text, oldTree);
   parseCache.set(uri, { tree, version });
+  if (!tree) {
+    throw new ParsingError(
+      "Failed to parse document: " + document.uri.toString()
+    );
+  }
   return tree;
 }
 
@@ -331,4 +337,21 @@ export function extractMethods(
   }
 
   return methods;
+}
+export function findLCA(
+  startNode: Parser.SyntaxNode,
+  endNode: Parser.SyntaxNode,
+  tree: Parser.Tree
+) {
+  let current: Parser.SyntaxNode | null = startNode;
+  while (current) {
+    if (
+      current.startIndex <= endNode.startIndex &&
+      current.endIndex >= endNode.endIndex
+    ) {
+      return current;
+    }
+    current = current.parent;
+  }
+  return tree.rootNode;
 }

@@ -1,17 +1,20 @@
 import * as path from "path";
 import * as vscode from "vscode";
 import * as strings from "@/utils/templating/strings";
-import * as fsNative from "fs";
-
-
 
 type JsonRecord = Record<string, unknown>;
 
-export function safeStat(filePath: string): fsNative.Stats | undefined {
-  try {
-    return fsNative.statSync(filePath);
-  } catch {
-    return undefined;
+export class FileNotFoundError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "NoFilesFoundError";
+  }
+}
+
+export class FileAlreadyExistsError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "FileAlreadyExistsError";
   }
 }
 
@@ -21,13 +24,18 @@ export function safeStat(filePath: string): fsNative.Stats | undefined {
 export async function getAllFiles(dirUri: vscode.Uri): Promise<vscode.Uri[]> {
   const files: vscode.Uri[] = [];
   const entries = await vscode.workspace.fs.readDirectory(dirUri);
-  
+
   for (const [name, type] of entries) {
     const entryUri = vscode.Uri.joinPath(dirUri, name);
-    
+
     if (type === vscode.FileType.Directory) {
       // Skip node_modules and other common directories
-      if (name !== "node_modules" && name !== ".git" && name !== "out" && name !== "dist") {
+      if (
+        name !== "node_modules" &&
+        name !== ".git" &&
+        name !== "out" &&
+        name !== "dist"
+      ) {
         const subFiles = await getAllFiles(entryUri);
         files.push(...subFiles);
       }
@@ -35,10 +43,15 @@ export async function getAllFiles(dirUri: vscode.Uri): Promise<vscode.Uri[]> {
       files.push(entryUri);
     }
   }
-  
+
+  if (files.length === 0) {
+    throw new FileNotFoundError(
+      `No files found in the selected folder: ${dirUri.fsPath}`
+    );
+  }
+
   return files;
 }
-
 
 export async function createTemplateFile(
   content: string,
@@ -231,3 +244,28 @@ function normalizePathMappings(
     })
   );
 }
+export async function createFile(
+  newFileUri: vscode.Uri,
+  template: string
+): Promise<void> {
+  await vscode.workspace.fs.createDirectory(newFileUri);
+  await vscode.workspace.fs.writeFile(
+    newFileUri,
+    Buffer.from(template, "utf8")
+  );
+}
+
+export async function checkFileExists(newFileUri: vscode.Uri): Promise<void> {
+  await vscode.workspace.fs.stat(newFileUri);
+  throw new FileAlreadyExistsError(
+    `File for command '${newFileUri.fsPath}' already exists.`
+  );
+}
+export function getWorkspaceFolder() {
+  const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
+  if (!workspaceFolder) {
+    throw new FileNotFoundError("No workspace folder found");
+  }
+  return workspaceFolder;
+}
+

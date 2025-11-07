@@ -41,3 +41,10 @@ export function returnMcpError(message: any): McpResult {
     isError: true,
   };
 }
+
+export function successMcpResult(result: any): McpResult {
+  return returnMcpResult({
+    success: true,
+    result: JSON.stringify(result, null, 2),
+  });
+}

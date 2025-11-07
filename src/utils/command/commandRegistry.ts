@@ -1,6 +1,7 @@
 import { CommandModule, McpResult } from "@/types/command";
 import * as vscode from "vscode";
 import * as mcp from "@/utils/ai/mcp";
+import { commandRegistry } from "@/index";
 /**
  * Singleton registry for command modules.
  * Commands register themselves using the @RegisterCommand decorator.
@@ -164,7 +165,7 @@ export function getMcpCommandQuickPickItems(): CommandQuickPickItem[] {
   return items;
 }
 
-export function findCommandById(id: string): CommandModule | McpResult {
+export function findCommandById(id: string): CommandModule {
   const registry = CommandRegistry.getInstance();
   const allCommands = registry.getAllMcpCommands();
 
@@ -182,10 +183,7 @@ export function findCommandById(id: string): CommandModule | McpResult {
       description: cmd.mcp?.tool.description,
     }));
 
-    return mcp.returnMcpError({
-      error: `Command '${id}' not found`,
-      availableCommands,
-    });
+    throw new CommandRegistryError(`Command '${id}' not found`);
   }
   return targetCommand;
 }
@@ -198,4 +196,12 @@ export async function executeCommand(commandModule: CommandModule) {
       `Failed to execute command: ${error.message}`
     );
   }
+}
+
+export async function getAllCommandQuickPickItems(): Promise<
+  CommandQuickPickItem[]
+> {
+  const vscodeItems = await getVscodeCommandQuickPickItems();
+  const items = getMcpCommandQuickPickItems();
+  return [...vscodeItems, ...items];
 }

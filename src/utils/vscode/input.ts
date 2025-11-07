@@ -86,3 +86,28 @@ export async function selectCommandQuickPickItem(
   }
   return selected;
 }
+export async function getCommandNameInput(): Promise<string> {
+  const newCommandName = await vscode.window.showInputBox({
+    prompt: "Enter a name for your new command (e.g. myNewCommand):",
+    validateInput: (value) => {
+      if (!value || !strings.isValidIdentifier(value)) {
+        return "Please enter a valid TypeScript identifier.";
+      }
+      return null;
+    },
+  });
+  if (!newCommandName) {
+    throw new InvalidInputError("No command name provided");
+  }
+  return newCommandName;
+}
+export async function getCommandDescriptionInput(): Promise<string> {
+  const newCommandDescription = await vscode.window.showInputBox({
+    prompt: "Enter a description that we will use to build this command",
+  });
+  if (!newCommandDescription) {
+    throw new InvalidInputError("No command description provided");
+  }
+  return newCommandDescription;
+}
+

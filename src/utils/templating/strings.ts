@@ -1,3 +1,4 @@
+import * as vscode from "vscode";
 
 /**
  * Converts a string to PascalCase.
@@ -32,7 +33,6 @@ export function toSnakeCaseCapitalized(str: string): string {
 }
 
 export function splitToWords(str: string): string[] {
-
   let words: string[] = [];
   str.match(/[A-Z_-]+[a-z0-9]+/g)?.forEach((word) => {
     words.push(word);
@@ -225,7 +225,6 @@ export function isValidIdentifier(str: string): boolean {
   return /^[a-zA-Z_][a-zA-Z0-9_]*$/.test(str);
 }
 
-
 export function normalizeTsPath(tsPath: string): string {
   return tsPath.replace(/\\/g, "/");
 }
@@ -234,7 +233,24 @@ export function stripLeadingDot(p: string): string {
   return p.startsWith("./") ? p.slice(2) : p;
 }
 
-
 export function escapeRegex(variation: string) {
   return variation.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+export async function captureRegex(documentText: string, regexString: string): Promise<string[]> {
+  const regex = new RegExp(regexString, "g");
+  const matchedTexts: string[] = [];
+  let match;
+
+  while ((match = regex.exec(documentText)) !== null) {
+    if (match.index === regex.lastIndex) {
+      regex.lastIndex++;
+    }
+
+    matchedTexts.push(match[0]);
+  }
+
+  const textToCopy = matchedTexts.join("\n");
+  await vscode.env.clipboard.writeText(textToCopy);
+  return matchedTexts;
 }

@@ -1,28 +1,24 @@
 import * as vscode from "vscode";
-import * as fs from "fs";
+import * as fsNative from "fs";
 import * as path from "path";
 import { CommandModuleImpl, type CommandModule } from "@/types/command";
 import * as importer from "@/utils/templating/importer";
 import * as mcp from "@/utils/ai/mcp";
 import { RegisterCommand } from "@/utils/command/commandRegistry";
+import * as fs from "@/utils/vscode/fs";
 
 const commandName = "package";
 const languages = undefined;
 const repoName = importer.extensionName();
 
 const commandFunc = async () => {
-  const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
-  if (!workspaceFolder) {
-    vscode.window.showErrorMessage("No workspace folder found.");
-    return;
-  }
-
+  const workspaceFolder = await fs.getWorkspaceFolder();
   const packageJsonPath = path.join(workspaceFolder.uri.fsPath, "package.json");
   const vscodeFolderPath = path.join(workspaceFolder.uri.fsPath, ".vscode");
 
   try {
     vscode.window.showInformationMessage("Incrementing version...");
-    const packageJsonContent = fs.readFileSync(packageJsonPath, "utf8");
+    const packageJsonContent = fsNative.readFileSync(packageJsonPath, "utf8");
     const packageJson = JSON.parse(packageJsonContent);
     
     const versionParts = packageJson.version.split(".");
@@ -33,11 +29,11 @@ const commandFunc = async () => {
     const newVersion = `${major}.${minor}.${patch + 1}`;
     packageJson.version = newVersion;
     
-    fs.writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2) + "\n", "utf8");
+    fsNative.writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2) + "\n", "utf8");
     vscode.window.showInformationMessage(`Version incremented to ${newVersion}`);
 
-    if (!fs.existsSync(vscodeFolderPath)) {
-      fs.mkdirSync(vscodeFolderPath, { recursive: true });
+    if (!fsNative.existsSync(vscodeFolderPath)) {
+      fsNative.mkdirSync(vscodeFolderPath, { recursive: true });
     }
 
     vscode.window.showInformationMessage("Packaging extension...");
@@ -58,7 +54,7 @@ const commandFunc = async () => {
     await new Promise<void>((resolve, reject) => {
       const checkInterval = setInterval(() => {
         attempts++;
-        if (fs.existsSync(vsixPath)) {
+        if (fsNative.existsSync(vsixPath)) {
           clearInterval(checkInterval);
           resolve();
         } else if (attempts >= maxAttempts) {

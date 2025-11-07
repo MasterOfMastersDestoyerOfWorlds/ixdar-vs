@@ -7,6 +7,8 @@ import {
 import * as mcp from "@/utils/ai/mcp";
 import { RegisterCommand } from "@/utils/command/commandRegistry";
 import * as decor from "@/utils/vscode/decor";
+import * as inputs from "@/utils/vscode/input";
+import * as strings from "@/utils/templating/strings";
 
 /**
  * captureRegex: displays a textbox that accepts regex and turns the text red in the box if the regex is invalid, selects/highlights all of the regex matches in the open file  and then copies them to the copy buffer on enter
@@ -15,11 +17,7 @@ const commandName = "captureRegex";
 const languages = undefined;
 const repoName = undefined;
 const commandFunc = async () => {
-  const editor = vscode.window.activeTextEditor;
-  if (!editor) {
-    vscode.window.showErrorMessage("No active text editor found.");
-    return;
-  }
+  const editor = inputs.getActiveEditor();
 
   const document = editor.document;
   const documentText = document.getText();
@@ -70,20 +68,7 @@ const commandFunc = async () => {
       return;
     }
 
-    const regex = new RegExp(regexString, "g");
-    const matchedTexts: string[] = [];
-    let match;
-
-    while ((match = regex.exec(documentText)) !== null) {
-      if (match.index === regex.lastIndex) {
-        regex.lastIndex++;
-      }
-
-      matchedTexts.push(match[0]);
-    }
-
-    const textToCopy = matchedTexts.join("\n");
-    await vscode.env.clipboard.writeText(textToCopy);
+    const matchedTexts = await strings.captureRegex(documentText, regexString);
 
     vscode.window.showInformationMessage(
       `${matchedTexts.length} match${matchedTexts.length > 1 ? "es" : ""} selected and copied to clipboard.`
