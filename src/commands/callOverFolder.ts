@@ -100,8 +100,6 @@ const mcpFunc = async (args: any): Promise<McpResult> => {
     } catch {
       return mcp.returnMcpError({ error: `Folder not found: ${folderPath}` });
     }
-
-    // Get the command
     const registry = CommandRegistry.getInstance();
     const allCommands = registry.getAllMcpCommands();
 
@@ -113,7 +111,6 @@ const mcpFunc = async (args: any): Promise<McpResult> => {
     );
 
     if (!targetCommand) {
-      // Try as VS Code command
       const vscodeCommands = await vscode.commands.getCommands(true);
       if (!vscodeCommands.includes(targetCommandName)) {
         return mcp.returnMcpError({
@@ -123,7 +120,6 @@ const mcpFunc = async (args: any): Promise<McpResult> => {
       }
     }
 
-    // Get all files
     const files = await fs.getAllFiles(folderUri);
 
     if (files.length === 0) {
@@ -134,7 +130,6 @@ const mcpFunc = async (args: any): Promise<McpResult> => {
       });
     }
 
-    // Execute command on each file
     let successCount = 0;
     let errorCount = 0;
     const errors: string[] = [];
@@ -168,7 +163,7 @@ const mcpFunc = async (args: any): Promise<McpResult> => {
       totalFiles: files.length,
       successCount,
       errorCount,
-      errors: errors.slice(0, 10), // Limit error list
+      errors: errors.slice(0, 10),
     });
   } catch (error: any) {
     return mcp.returnMcpError({ error: error.message });

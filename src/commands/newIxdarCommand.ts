@@ -13,6 +13,7 @@ import * as commandRegistry from "@/utils/command/commandRegistry";
 import * as commandModule from "@/types/command";
 import * as inputs from "@/utils/vscode/input";
 import * as fs from "@/utils/vscode/fs";
+
 function ixdarCommandTemplate(
   additionalImports: string,
   newCommandName: any,
@@ -66,16 +67,8 @@ const repoName = importer.EXTENSION_NAME;
 const commandFunc = async () => {
   const newCommandName = await inputs.getCommandNameInput();
   const newCommandDescription = await inputs.getCommandDescriptionInput();
-  const wsFolders = vscode.workspace.workspaceFolders;
-  if (!wsFolders || wsFolders.length === 0) {
-    vscode.window.showErrorMessage("No workspace folder is open.");
-    return;
-  }
-  const commandsFolderUri = vscode.Uri.joinPath(
-    wsFolders[0].uri,
-    "src",
-    "commands"
-  );
+  const workspaceFolder = await fs.getWorkspaceFolder();
+  const commandsFolderUri = await fs.getCommandsFolderUri(workspaceFolder);
   const newFileUri = vscode.Uri.joinPath(
     commandsFolderUri,
     `${newCommandName}.ts`
@@ -106,34 +99,6 @@ const mcpFunc = async (args: any): Promise<McpResult> => {
   try {
     const newCommandName = args.newCommandName;
     const newCommandDescription = args.description || "";
-    const commandNamesInput = args.commandNames || "";
-
-    if (!newCommandName) {
-      return {
-        content: [
-          {
-            type: "text",
-            text: JSON.stringify({ error: "newCommandName is required" }),
-          },
-        ],
-        isError: true,
-      };
-    }
-
-    if (!strings.isValidIdentifier(newCommandName)) {
-      return {
-        content: [
-          {
-            type: "text",
-            text: JSON.stringify({
-              error:
-                "Invalid command name. Must be a valid TypeScript identifier.",
-            }),
-          },
-        ],
-        isError: true,
-      };
-    }
 
     const wsFolders = vscode.workspace.workspaceFolders;
     if (!wsFolders || wsFolders.length === 0) {

@@ -70,11 +70,7 @@ export function makeTemplate(${argsList}: string) {
 };
 
 const commandFunc = async () => {
-  const editor = vscode.window.activeTextEditor;
-  if (!editor) {
-    vscode.window.showErrorMessage("No active editor found.");
-    return;
-  }
+  const editor = inputs.getActiveEditor();
 
   const document = editor.document;
   const tree = parser.getParseTree(document);

@@ -1,5 +1,6 @@
 import * as vscode from "vscode";
 import * as https from "https";
+import * as importer from "@/utils/templating/importer";
 
 interface AIConfig {
   provider: "gemini" | "openai" | "anthropic";

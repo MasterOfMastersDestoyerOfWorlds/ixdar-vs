@@ -1,7 +1,5 @@
 import { CommandModule, McpResult } from "@/types/command";
 import * as vscode from "vscode";
-import * as mcp from "@/utils/ai/mcp";
-import { commandRegistry } from "@/index";
 /**
  * Singleton registry for command modules.
  * Commands register themselves using the @RegisterCommand decorator.
