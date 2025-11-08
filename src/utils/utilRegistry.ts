@@ -1,33 +1,81 @@
 /**
- * Registry system for tracking exported utilities and types
- * Similar to CommandRegistry but for util/type discovery and auto-import
+ * Registry system for tracking utility modules and their exported functions.
+ * Modules register themselves via @RegisterUtilModule and individual functions
+ * register via @UtilFuncRegistry.
  */
 
-export type ExportKind = 'function' | 'class' | 'interface' | 'type' | 'enum' | 'const';
-
-export interface ExportInfo {
+export interface FunctionParameterInfo {
+  index: number;
   name: string;
-  kind: ExportKind;
+}
+
+export interface FunctionMetadata {
+  moduleName: string;
+  functionName: string;
+  parameters: FunctionParameterInfo[];
+  isAsync: boolean;
+  filePath?: string;
 }
 
 export interface UtilModule {
-  filePath: string; // e.g., "@/utils/templating/strings"
-  exports: ExportInfo[];
+  name: string;
+  filePath: string;
+}
+
+function getFunctionKey(moduleName: string, functionName: string): string {
+  return `${moduleName}:${functionName}`;
+}
+
+function extractParameterInfo(fn: Function): FunctionParameterInfo[] {
+  const fnString = fn
+    .toString()
+    .replace(/\/\*[\s\S]*?\*\//g, "")
+    .replace(/\/\/.*$/gm, "");
+
+  const match =
+    fnString.match(/^[^(]*\(\s*([^)]*)\)/) ??
+    fnString.match(/\(\s*([^)]*)\)\s*=>/) ??
+    fnString.match(/^[^\(]*\s*([^\s=]+)\s*=>/);
+
+  if (!match || !match[1]) {
+    return [];
+  }
+
+  const paramsSection = match[1];
+  if (!paramsSection.trim()) {
+    return [];
+  }
+
+  const rawParams = paramsSection.split(",");
+  return rawParams
+    .map((rawParam, index) => {
+      const cleaned = rawParam
+        .trim()
+        .replace(/=[\s\S]*/g, "")
+        .replace(/\s*\?.*/, "")
+        .replace(/^\.\.\./, "")
+        .trim();
+
+      const name = cleaned || `param${index}`;
+      return {
+        index,
+        name,
+      };
+    })
+    .filter((param) => param.name.length > 0);
 }
 
 /**
- * Singleton registry for utility modules and their exports.
- * Utils register themselves using the @RegisterUtil decorator.
+ * Singleton registry for utility modules and their functions.
  */
 export class UtilRegistry {
   private static instance: UtilRegistry;
-  private utils: UtilModule[] = [];
+
+  private modules = new Map<string, UtilModule>();
+  private functionMetadata = new Map<string, FunctionMetadata>();
 
   private constructor() {}
 
-  /**
-   * Get the singleton instance of the UtilRegistry
-   */
   static getInstance(): UtilRegistry {
     if (!UtilRegistry.instance) {
       UtilRegistry.instance = new UtilRegistry();
@@ -35,93 +83,78 @@ export class UtilRegistry {
     return UtilRegistry.instance;
   }
 
-  /**
-   * Register a utility module with its exports
-   */
-  register(util: UtilModule): void {
-    if (!util || !util.filePath) {
-      console.warn("Attempted to register invalid util module");
+  registerModule(moduleName: string, filePath: string): void {
+    if (!moduleName || !filePath) {
+      console.warn("Attempted to register module without name or filePath");
       return;
     }
-    
-    // Check if already registered and update instead
-    const existingIndex = this.utils.findIndex(u => u.filePath === util.filePath);
-    if (existingIndex >= 0) {
-      this.utils[existingIndex] = util;
-    } else {
-      this.utils.push(util);
-    }
-    
-    console.log(`Registered util: ${util.filePath} with ${util.exports.length} exports`);
-  }
 
-  /**
-   * Get all registered utility modules
-   */
-  getAll(): UtilModule[] {
-    return [...this.utils];
-  }
+    this.modules.set(moduleName, { name: moduleName, filePath });
 
-  /**
-   * Find which util module exports a given symbol
-   * Returns the module and export info if found
-   */
-  findExportByName(symbolName: string): { module: UtilModule; export: ExportInfo } | undefined {
-    for (const util of this.utils) {
-      const exportInfo = util.exports.find(exp => exp.name === symbolName);
-      if (exportInfo) {
-        return { module: util, export: exportInfo };
+    for (const metadata of this.functionMetadata.values()) {
+      if (metadata.moduleName === moduleName) {
+        metadata.filePath = filePath;
       }
     }
-    return undefined;
   }
 
-  /**
-   * Find all modules that export a given symbol (in case of duplicates)
-   */
-  findAllExportsByName(symbolName: string): Array<{ module: UtilModule; export: ExportInfo }> {
-    const results: Array<{ module: UtilModule; export: ExportInfo }> = [];
-    
-    for (const util of this.utils) {
-      const exportInfo = util.exports.find(exp => exp.name === symbolName);
-      if (exportInfo) {
-        results.push({ module: util, export: exportInfo });
-      }
+  registerFunction(metadata: FunctionMetadata): void {
+    if (!metadata.moduleName || !metadata.functionName) {
+      console.warn("Attempted to register function without moduleName or functionName");
+      return;
     }
-    
-    return results;
+
+    const moduleInfo = this.modules.get(metadata.moduleName);
+    const metadataWithPath: FunctionMetadata = {
+      ...metadata,
+      filePath: metadata.filePath ?? moduleInfo?.filePath,
+    };
+
+    const key = getFunctionKey(metadataWithPath.moduleName, metadataWithPath.functionName);
+    this.functionMetadata.set(key, metadataWithPath);
   }
 
-  /**
-   * Clear all registered utils (useful for testing)
-   */
+  findModuleByName(moduleName: string): UtilModule | undefined {
+    return this.modules.get(moduleName);
+  }
+
+  getModulePath(moduleName: string): string | undefined {
+    return this.modules.get(moduleName)?.filePath;
+  }
+
+  getAllModules(): UtilModule[] {
+    return Array.from(this.modules.values());
+  }
+
+  getFunctionsByModule(moduleName: string): FunctionMetadata[] {
+    return Array.from(this.functionMetadata.values()).filter(
+      (metadata) => metadata.moduleName === moduleName
+    );
+  }
+
+  findFunctionsByName(functionName: string): FunctionMetadata[] {
+    return Array.from(this.functionMetadata.values()).filter(
+      (metadata) => metadata.functionName === functionName
+    );
+  }
+
   clear(): void {
-    this.utils = [];
+    this.modules.clear();
+    this.functionMetadata.clear();
   }
 }
 
+
 /**
- * Decorator to automatically register a util module with the registry.
- * Usage: Apply to a class that wraps the util exports
+ * Decorator to register a module with the util registry.
  *
  * @example
- * @RegisterUtil("@/utils/templating/strings", [
- *   { name: 'toPascalCase', kind: 'function' },
- *   { name: 'StringCases', kind: 'enum' }
- * ])
- * class StringsUtil {
- *   static registered = true;
- * }
+ * @RegisterUtilModule("strings", "@/utils/templating/strings")
+ * class StringsModule {}
  */
-export function RegisterUtil(filePath: string, exports: ExportInfo[]) {
+export function RegisterUtilModule(moduleName: string, filePath: string) {
   return function <T extends { new (...args: any[]): any }>(constructor: T): T {
-    const util: UtilModule = {
-      filePath,
-      exports,
-    };
-
-    UtilRegistry.getInstance().register(util);
-    
+    UtilRegistry.getInstance().registerModule(moduleName, filePath);
     return constructor;
   };
 }

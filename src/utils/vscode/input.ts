@@ -2,7 +2,6 @@ import { strings } from "@/index";
 import { MethodInfo } from "@/types/parser";
 import * as vscode from "vscode";
 import { CommandQuickPickItem } from "../command/commandRegistry";
-import { RegisterUtil } from "@/utils/utilRegistry";
 
 export class InvalidInputError extends Error {
   constructor(message: string) {
@@ -112,18 +111,4 @@ export async function getCommandDescriptionInput(): Promise<string> {
   return newCommandDescription;
 }
 
-@RegisterUtil("@/utils/vscode/input", [
-  { name: "InvalidInputError", kind: "class" },
-  { name: "NoActiveEditorError", kind: "class" },
-  { name: "getReplacementTargets", kind: "function" },
-  { name: "getMethod", kind: "function" },
-  { name: "getFileNameInput", kind: "function" },
-  { name: "getActiveEditor", kind: "function" },
-  { name: "selectCommandQuickPickItem", kind: "function" },
-  { name: "getCommandNameInput", kind: "function" },
-  { name: "getCommandDescriptionInput", kind: "function" },
-])
-class InputUtilRegistry {
-  static registered = true;
-}
 

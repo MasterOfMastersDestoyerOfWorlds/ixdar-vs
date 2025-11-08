@@ -1,5 +1,4 @@
 import * as vscode from "vscode";
-import { RegisterUtil } from "@/utils/utilRegistry";
 
 /**
  * Converts a string to PascalCase.
@@ -256,34 +255,3 @@ export async function captureRegex(documentText: string, regexString: string): P
   return matchedTexts;
 }
 
-// Register all exports with the UtilRegistry
-@RegisterUtil("@/utils/templating/strings", [
-  { name: "toPascalCase", kind: "function" },
-  { name: "toSnakeCase", kind: "function" },
-  { name: "toSnakeCaseCapitalized", kind: "function" },
-  { name: "splitToWords", kind: "function" },
-  { name: "toCamelCase", kind: "function" },
-  { name: "toDashedCase", kind: "function" },
-  { name: "capitalize", kind: "function" },
-  { name: "uncapitalize", kind: "function" },
-  { name: "splitByCapitals", kind: "function" },
-  { name: "StringCases", kind: "enum" },
-  { name: "isSnakeCase", kind: "function" },
-  { name: "isSnakeCaseCapitalized", kind: "function" },
-  { name: "isPascalCase", kind: "function" },
-  { name: "isCamelCase", kind: "function" },
-  { name: "isDashedCase", kind: "function" },
-  { name: "convertString", kind: "function" },
-  { name: "getStringCase", kind: "function" },
-  { name: "getAllCases", kind: "function" },
-  { name: "getFunctionForCase", kind: "function" },
-  { name: "lineContains", kind: "function" },
-  { name: "isValidIdentifier", kind: "function" },
-  { name: "normalizeTsPath", kind: "function" },
-  { name: "stripLeadingDot", kind: "function" },
-  { name: "escapeRegex", kind: "function" },
-  { name: "captureRegex", kind: "function" },
-])
-class StringsUtilRegistry {
-  static registered = true;
-}

@@ -2,7 +2,6 @@ import * as path from "path";
 import * as vscode from "vscode";
 import * as strings from "@/utils/templating/strings";
 import * as importer from "@/utils/templating/importer";
-import { RegisterUtil } from "@/utils/utilRegistry";
 
 type JsonRecord = Record<string, unknown>;
 
@@ -279,20 +278,4 @@ export async function getCommandsFolderUri(workspaceFolder: vscode.WorkspaceFold
     "commands"
   );
   return commandsFolderUri;
-}
-
-// Register all exports with the UtilRegistry
-@RegisterUtil("@/utils/vscode/fs", [
-  { name: "FileNotFoundError", kind: "class" },
-  { name: "FileAlreadyExistsError", kind: "class" },
-  { name: "getAllFiles", kind: "function" },
-  { name: "createTemplateFile", kind: "function" },
-  { name: "makeIxFolder", kind: "function" },
-  { name: "createFile", kind: "function" },
-  { name: "checkFileExists", kind: "function" },
-  { name: "getWorkspaceFolder", kind: "function" },
-  { name: "getCommandsFolderUri", kind: "function" },
-])
-class FsUtilRegistry {
-  static registered = true;
 }

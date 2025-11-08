@@ -4,7 +4,7 @@ import * as strings from "../utils/templating/strings";
 import * as importer from "@/utils/templating/importer";
 import { runWithAvailabilityGuard } from "../utils/command/availability";
 import type Parser from "tree-sitter";
-import { RegisterUtil } from "@/utils/utilRegistry";
+import { RegisterUtilModule } from "@/utils/utilRegistry";
 
 export interface InputSchema {
   type: string;
@@ -119,15 +119,5 @@ export class CommandModuleImpl implements CommandModule {
   }
 }
 
-// Register all exports with the UtilRegistry
-@RegisterUtil("@/types/command", [
-  { name: "InputSchema", kind: "interface" },
-  { name: "McpToolDefinition", kind: "interface" },
-  { name: "McpResult", kind: "class" },
-  { name: "CommandAvailabilityMeta", kind: "interface" },
-  { name: "CommandModule", kind: "interface" },
-  { name: "CommandModuleImpl", kind: "class" },
-])
-class CommandTypesRegistry {
-  static registered = true;
-}
+@RegisterUtilModule("command", "@/types/command")
+class CommandTypesModule {}

@@ -33,7 +33,6 @@ export class CommandRegistry {
       return;
     }
     this.commands.push(command);
-    console.log(`Registered command: ${command.vscodeCommand.id}`);
   }
 
   /**
