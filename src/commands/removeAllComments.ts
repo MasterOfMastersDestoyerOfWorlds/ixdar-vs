@@ -3,12 +3,12 @@ import {
   CommandModuleImpl,
   type CommandModule,
   type McpResult,
-} from "@/types/command";
+} from "@/types/commandModule";
 import * as mcp from "@/utils/ai/mcp";
 import * as parser from "@/utils/templating/parser";
 import Parser from "tree-sitter";
 import { RegisterCommand } from "@/utils/command/commandRegistry";
-import * as inputs from "@/utils/vscode/input";
+import * as inputs from "@/utils/vscode/inputs";
 
 /**
  * removeAllComments: Remove all single-line comments from the current file using tree-sitter AST parsing.

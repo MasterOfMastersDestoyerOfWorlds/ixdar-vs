@@ -3,7 +3,7 @@ import {
   CommandModuleImpl,
   type CommandModule,
   type McpResult,
-} from "@/types/command";
+} from "@/types/commandModule";
 import * as mcp from "@/utils/ai/mcp";
 import { RegisterCommand } from "@/utils/command/commandRegistry";
 import * as parser from "@/utils/templating/parser";

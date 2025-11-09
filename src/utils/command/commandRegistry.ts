@@ -1,4 +1,4 @@
-import { CommandModule, McpResult } from "@/types/command";
+import { CommandModule, McpResult } from "@/types/commandModule";
 import * as vscode from "vscode";
 /**
  * Singleton registry for command modules.

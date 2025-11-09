@@ -1,7 +1,7 @@
 import * as vscode from "vscode";
 import * as fsNative from "fs";
 import * as path from "path";
-import { CommandModuleImpl, type CommandModule } from "@/types/command";
+import { CommandModuleImpl, type CommandModule } from "@/types/commandModule";
 import * as importer from "@/utils/templating/importer";
 import * as mcp from "@/utils/ai/mcp";
 import { RegisterCommand } from "@/utils/command/commandRegistry";

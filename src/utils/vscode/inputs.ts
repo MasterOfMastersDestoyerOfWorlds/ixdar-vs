@@ -3,6 +3,14 @@ import { MethodInfo } from "@/types/parser";
 import * as vscode from "vscode";
 import { CommandQuickPickItem } from "../command/commandRegistry";
 
+/**
+ * @description Use this module for all interactions with vscode where we need to get input from the user. 
+ */
+
+
+/**
+ * Invalid input error class
+ */
 export class InvalidInputError extends Error {
   constructor(message: string) {
     super(message);
@@ -10,6 +18,9 @@ export class InvalidInputError extends Error {
   }
 }
 
+/**
+ * No active editor error class
+ */
 export class NoActiveEditorError extends Error {
   constructor(message?: string) {
     super(message || "No active editor found.");
@@ -17,6 +28,10 @@ export class NoActiveEditorError extends Error {
   }
 }
 
+/**
+ * Get the replacement targets for making a template from a file from the user.
+ * @returns The replacement targets.
+ */
 export async function getReplacementTargets(): Promise<string[]> {
   const targetsInput = await vscode.window.showInputBox({
     prompt:
@@ -34,6 +49,12 @@ export async function getReplacementTargets(): Promise<string[]> {
     .filter((t) => t.length > 0);
   return targets;
 }
+
+/**
+ * Get a method from the user.
+ * @param methods - The methods to choose from.
+ * @returns The selected method.
+ */
 export async function getMethod(methods: MethodInfo[]): Promise<MethodInfo> {
   const methodItems = methods.map((method) => ({
     label: method.name,
@@ -50,6 +71,12 @@ export async function getMethod(methods: MethodInfo[]): Promise<MethodInfo> {
 
   return selectedItem.method;
 }
+
+/**
+ * Get a file name from the user.
+ * @param fileName - The file name to use as a placeholder.
+ * @returns The selected file name.
+ */
 export async function getFileNameInput(fileName: string): Promise<string> {
   const camelCaseFileName = `${strings.toCamelCase(fileName)}.ts`;
 
@@ -64,6 +91,10 @@ export async function getFileNameInput(fileName: string): Promise<string> {
   return fileNameInput;
 }
 
+/**
+ * Get the active editor.
+ * @returns The active editor.
+ */
 export function getActiveEditor(): vscode.TextEditor {
   const editor = vscode.window.activeTextEditor;
   if (!editor) {
@@ -72,6 +103,11 @@ export function getActiveEditor(): vscode.TextEditor {
   return editor;
 }
 
+/**
+ * Select a command from the user.
+ * @param items - The commands to choose from.
+ * @returns The selected command.
+ */
 export async function selectCommandQuickPickItem(
   items: CommandQuickPickItem[]
 ): Promise<CommandQuickPickItem> {
@@ -86,6 +122,11 @@ export async function selectCommandQuickPickItem(
   }
   return selected;
 }
+
+/**
+ * Get a command name from the user.
+ * @returns The selected command name.
+ */
 export async function getCommandNameInput(): Promise<string> {
   const newCommandName = await vscode.window.showInputBox({
     prompt: "Enter a name for your new command (e.g. myNewCommand):",
@@ -101,6 +142,11 @@ export async function getCommandNameInput(): Promise<string> {
   }
   return newCommandName;
 }
+
+/**
+ * Get a command description from the user.
+ * @returns The selected command description.
+ */
 export async function getCommandDescriptionInput(): Promise<string> {
   const newCommandDescription = await vscode.window.showInputBox({
     prompt: "Enter a description that we will use to build this command",

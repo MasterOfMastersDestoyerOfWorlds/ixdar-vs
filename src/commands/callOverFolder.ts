@@ -3,7 +3,7 @@ import {
   CommandModuleImpl,
   type CommandModule,
   type McpResult,
-} from "@/types/command";
+} from "@/types/commandModule";
 import * as mcp from "@/utils/ai/mcp";
 import {
   RegisterCommand,
@@ -12,7 +12,7 @@ import {
 import * as path from "path";
 import * as fs from "@/utils/vscode/fs";
 import * as commandRegistry from "@/utils/command/commandRegistry";
-import * as inputs from "@/utils/vscode/input";
+import * as inputs from "@/utils/vscode/inputs";
 /**
  * callOverFolder: Call any ix command or vscode command over all files and sub folders of a given folder
  */

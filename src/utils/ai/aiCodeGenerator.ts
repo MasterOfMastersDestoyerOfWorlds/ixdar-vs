@@ -2,6 +2,13 @@ import * as vscode from "vscode";
 import * as https from "https";
 import * as importer from "@/utils/templating/importer";
 
+/**
+ * Use this module to get code generations from an AI model provider
+ */
+
+/**
+ * AI configuration interface
+ */
 interface AIConfig {
   provider: "gemini" | "openai" | "anthropic";
   model: string;

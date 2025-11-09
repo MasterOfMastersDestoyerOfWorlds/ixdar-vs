@@ -3,11 +3,11 @@ import {
   CommandModuleImpl,
   type CommandModule,
   type McpResult,
-} from "@/types/command";
+} from "@/types/commandModule";
 import * as mcp from "@/utils/ai/mcp";
 import { RegisterCommand } from "@/utils/command/commandRegistry";
 import * as decor from "@/utils/vscode/decor";
-import * as inputs from "@/utils/vscode/input";
+import * as inputs from "@/utils/vscode/inputs";
 import * as strings from "@/utils/templating/strings";
 
 /**

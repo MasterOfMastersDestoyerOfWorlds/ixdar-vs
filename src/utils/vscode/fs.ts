@@ -3,8 +3,15 @@ import * as vscode from "vscode";
 import * as strings from "@/utils/templating/strings";
 import * as importer from "@/utils/templating/importer";
 
+/**
+ * @description Use this module for all file system operations.
+ */
+
 type JsonRecord = Record<string, unknown>;
 
+/**
+ * File not found error class
+ */
 export class FileNotFoundError extends Error {
   constructor(message: string) {
     super(message);
@@ -12,6 +19,9 @@ export class FileNotFoundError extends Error {
   }
 }
 
+/**
+ * File already exists error class
+ */
 export class FileAlreadyExistsError extends Error {
   constructor(message: string) {
     super(message);
@@ -21,6 +31,8 @@ export class FileAlreadyExistsError extends Error {
 
 /**
  * Recursively gets all files in a directory
+ * @param dirUri The directory to get the files in
+ * @returns a list of file URIs in the directory
  */
 export async function getAllFiles(dirUri: vscode.Uri): Promise<vscode.Uri[]> {
   const files: vscode.Uri[] = [];
@@ -54,6 +66,13 @@ export async function getAllFiles(dirUri: vscode.Uri): Promise<vscode.Uri[]> {
   return files;
 }
 
+/**
+ * Create a template file in the .ix folder.
+ * @param content The content of the template file.
+ * @param fileName The name of the template file.
+ * @param workspaceFolder The workspace folder to create the template file in.
+ * @returns The URI of the created template file.
+ */
 export async function createTemplateFile(
   content: string,
   fileName: string,
@@ -71,6 +90,11 @@ export async function createTemplateFile(
   return templateFile;
 }
 
+/**
+ * Make the .ix folder in the workspace folder.
+ * @param workspaceFolder The workspace folder to make the .ix folder in.
+ * @returns The URI of the .ix folder.
+ */
 export async function makeIxFolder(
   workspaceFolder?: vscode.WorkspaceFolder
 ): Promise<vscode.Uri> {
@@ -125,6 +149,13 @@ export async function makeIxFolder(
   return ixFolder;
 }
 
+/**
+ * Ensure the .ix package.json file is correct.
+ * @param ixFolder The .ix folder.
+ * @param ixPackageJsonUri The URI of the .ix package.json file.
+ * @param workspacePackage The workspace package.json file.
+ * @returns The URI of the .ix package.json file.
+ */
 async function ensureIxPackageJson(
   ixFolder: vscode.Uri,
   ixPackageJsonUri: vscode.Uri,
@@ -138,7 +169,7 @@ async function ensureIxPackageJson(
     name: "ix-templates",
     private: true,
     dependencies: {
-       [importer.EXTENSION_NAME]: workspaceVersion ?? "latest",
+      [importer.EXTENSION_NAME]: workspaceVersion ?? "latest",
     },
   } satisfies JsonRecord;
 
@@ -148,6 +179,13 @@ async function ensureIxPackageJson(
   );
 }
 
+/**
+ * Ensure the .ix tsconfig.json file is correct.
+ * @param ixFolder The .ix folder.
+ * @param ixTsConfigUri The URI of the .ix tsconfig.json file.
+ * @param workspaceTsConfig The workspace tsconfig.json file.
+ * @returns The URI of the .ix tsconfig.json file.
+ */
 async function ensureIxTsConfig(
   ixFolder: vscode.Uri,
   ixTsConfigUri: vscode.Uri,
@@ -183,6 +221,13 @@ async function ensureIxTsConfig(
   );
 }
 
+/**
+ * Ensure the .ix gitignore file is correct.
+ * @param ixFolder The .ix folder.
+ * @param ixGitIgnoreUri The URI of the .ix gitignore file.
+ * @param workspaceGitIgnore The workspace gitignore file.
+ * @returns The URI of the .ix gitignore file.
+ */
 async function ensureIxGitIgnore(
   ixFolder: vscode.Uri,
   ixGitIgnoreUri: vscode.Uri,
@@ -204,6 +249,11 @@ async function ensureIxGitIgnore(
   );
 }
 
+/**
+ * Read a JSON file.
+ * @param uri The URI of the JSON file.
+ * @returns The JSON record of the file.
+ */
 async function readJsonFile(uri: vscode.Uri): Promise<JsonRecord | undefined> {
   try {
     const bytes = await vscode.workspace.fs.readFile(uri);
@@ -214,6 +264,11 @@ async function readJsonFile(uri: vscode.Uri): Promise<JsonRecord | undefined> {
   }
 }
 
+/**
+ * Read a file.
+ * @param uri The URI of the file.
+ * @returns The content of the file.
+ */
 async function readFile(uri: vscode.Uri): Promise<string | undefined> {
   try {
     const bytes = await vscode.workspace.fs.readFile(uri);
@@ -223,6 +278,12 @@ async function readFile(uri: vscode.Uri): Promise<string | undefined> {
   }
 }
 
+/**
+ * Normalize path mappings.
+ * @param baseUrl The base URL.
+ * @param paths The paths to normalize.
+ * @returns The normalized paths.
+ */
 function normalizePathMappings(
   baseUrl: string,
   paths: Record<string, string[]>
@@ -245,23 +306,45 @@ function normalizePathMappings(
     })
   );
 }
+
+/**
+ * Create a file.
+ * @param newFileUri The URI of the new file.
+ * @param template The template to create the file from.
+ * @returns The URI of the created file.
+ */
 export async function createFile(
   newFileUri: vscode.Uri,
   template: string
 ): Promise<void> {
-  await vscode.workspace.fs.createDirectory(newFileUri);
   await vscode.workspace.fs.writeFile(
     newFileUri,
     Buffer.from(template, "utf8")
   );
 }
 
+/**
+ * Check if a file exists.
+ * @param newFileUri The URI of the file to check.
+ * @returns The URI of the file.
+ * @throws FileAlreadyExistsError if the file already exists.
+ */
 export async function checkFileExists(newFileUri: vscode.Uri): Promise<void> {
-  await vscode.workspace.fs.stat(newFileUri);
-  throw new FileAlreadyExistsError(
-    `File for command '${newFileUri.fsPath}' already exists.`
-  );
+  try {
+    await vscode.workspace.fs.stat(newFileUri);
+    throw new FileAlreadyExistsError(
+      `File for command '${newFileUri.fsPath}' already exists.`
+    );
+  } catch (error) {
+    return;
+  }
 }
+
+/**
+ * Get the workspace folder.
+ * @returns The workspace folder.
+ * @throws FileNotFoundError if no workspace folder is found.
+ */
 export function getWorkspaceFolder() {
   const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
   if (!workspaceFolder) {
@@ -270,8 +353,14 @@ export function getWorkspaceFolder() {
   return workspaceFolder;
 }
 
-
-export async function getCommandsFolderUri(workspaceFolder: vscode.WorkspaceFolder) {
+/**
+ * Get the commands folder URI.
+ * @param workspaceFolder The workspace folder.
+ * @returns The URI of the commands folder.
+ */
+export async function getCommandsFolderUri(
+  workspaceFolder: vscode.WorkspaceFolder
+) {
   const commandsFolderUri = vscode.Uri.joinPath(
     workspaceFolder.uri,
     "src",

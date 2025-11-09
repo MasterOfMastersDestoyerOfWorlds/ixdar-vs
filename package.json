@@ -3,7 +3,7 @@
   "displayName": "ixdar-vs",
   "description": "Higher level templating and diff automation",
   "publisher": "KriegEterna",
-  "version": "0.0.28",
+  "version": "0.0.31",
   "icon": "images/favicon.ico",
   "repository": {
     "type": "git",

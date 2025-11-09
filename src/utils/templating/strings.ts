@@ -1,6 +1,10 @@
 import * as vscode from "vscode";
 
 /**
+ * Use this module for all single word string manipulation, pattern matching, and classification of string types.
+ */
+
+/**
  * Converts a string to PascalCase.
  * Eg. "my_test-string" => "MyTestString"
  */

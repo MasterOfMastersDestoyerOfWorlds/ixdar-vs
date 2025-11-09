@@ -3,13 +3,13 @@ import {
   CommandModuleImpl,
   type CommandModule,
   type McpResult,
-} from "@/types/command";
+} from "@/types/commandModule";
 import * as strings from "@/utils/templating/strings";
 import * as importer from "@/utils/templating/importer";
 import * as mcp from "@/utils/ai/mcp";
 import { RegisterCommand } from "@/utils/command/commandRegistry";
 import * as fs from "@/utils/vscode/fs";
-import * as inputs from "@/utils/vscode/input";
+import * as inputs from "@/utils/vscode/inputs";
 
 /**
  * makeTemplateFromFile: Make a template function from a file by replacing target variables with case-specific template literals.

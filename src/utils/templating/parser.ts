@@ -6,6 +6,12 @@ import Python from "tree-sitter-python";
 import CSharp from "tree-sitter-c-sharp";
 import { MethodInfo } from "@/types/parser";
 
+/**
+ * Use this module for all multi-word string manipulation and structural 
+ * pattern matching and structure changes of code files. This module uses
+ * tree-sitter for its parsing and structural manipulation.
+ */
+
 export class ParsingError extends Error {
   constructor(message: string) {
     super(message);

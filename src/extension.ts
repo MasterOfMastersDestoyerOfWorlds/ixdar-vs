@@ -1,6 +1,6 @@
 import * as vscode from "vscode";
 import * as http from "http";
-import { CommandModuleImpl, type CommandModule } from "@/types/command";
+import { CommandModuleImpl, type CommandModule } from "@/types/commandModule";
 import {
   getActiveRepoName,
   getActiveLanguageId,
@@ -163,7 +163,7 @@ export async function activate(context: vscode.ExtensionContext) {
               return mcp.returnMcpError("Command ID is required");
             }
             await vscode.commands.executeCommand(commandId, ...args);
-            return mcp.successMcpResult(`Executed command: ${commandId}`);
+            return mcp.returnMcpSuccess(`Executed command: ${commandId}`);
           }
 
           default: {

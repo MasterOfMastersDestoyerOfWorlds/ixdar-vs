@@ -1,9 +1,9 @@
-import * as input from '@/utils/vscode/input';
+import * as input from '@/utils/vscode/inputs';
 import * as importer from '@/utils/templating/importer';
 import {
   CommandModuleImpl,
   type CommandModule
-} from "@/types/command";
+} from "@/types/commandModule";
 import { RegisterCommand } from "@/utils/command/commandRegistry";
 import * as mcp from "@/utils/ai/mcp";
 import { UtilModule, UtilRegistry } from "@/utils/utilRegistry";

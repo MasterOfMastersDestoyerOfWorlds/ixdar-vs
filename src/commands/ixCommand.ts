@@ -3,10 +3,10 @@ import {
   CommandModuleImpl,
   McpResult,
   type CommandModule,
-} from "@/types/command";
+} from "@/types/commandModule";
 import * as commandRegistry from "@/utils/command/commandRegistry";
 import * as mcp from "@/utils/ai/mcp";
-import * as inputs from "@/utils/vscode/input";
+import * as inputs from "@/utils/vscode/inputs";
 import { CommandQuickPickItem } from "@/utils/command/commandRegistry";
 
 /**
@@ -27,7 +27,7 @@ const mcpFunc = async (args: any): Promise<McpResult> => {
     const commandName = args.commandName;
     const targetCommand = commandRegistry.findCommandById(commandName);
     const result = await targetCommand.mcp?.call(args.args || {});
-    return mcp.successMcpResult(result);
+    return mcp.returnMcpSuccess(result);
   } catch (error: any) {
     return mcp.returnMcpError(error.message);
   }

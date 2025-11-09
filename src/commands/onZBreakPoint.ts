@@ -1,5 +1,5 @@
 import * as vscode from "vscode";
-import { CommandModuleImpl, type CommandModule, type McpResult } from "@/types/command";
+import { CommandModuleImpl, type CommandModule, type McpResult } from "@/types/commandModule";
 import * as mcp from "@/utils/ai/mcp";
 import { RegisterCommand } from "@/utils/command/commandRegistry";
 

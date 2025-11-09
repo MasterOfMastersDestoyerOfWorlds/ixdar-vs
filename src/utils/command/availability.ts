@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
-import type { CommandAvailabilityMeta } from '../../types/command';
+import type { CommandAvailabilityMeta } from '../../types/commandModule';
 
 export async function getActiveRepoName(): Promise<string | undefined> {
 	try {

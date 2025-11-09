@@ -1,10 +1,10 @@
 
 import * as vscode from "vscode";
-import { CommandModuleImpl, type CommandModule } from "@/types/command";
+import { CommandModuleImpl, type CommandModule } from "@/types/commandModule";
 import { RegisterCommand } from "@/utils/command/commandRegistry";
 import * as parser from "@/utils/templating/parser";
 import type Parser from "tree-sitter";
-import * as inputs from "@/utils/vscode/input";
+import * as inputs from "@/utils/vscode/inputs";
 
 /**
  * growSelection: Grows the current selection to the containing tree-sitter node

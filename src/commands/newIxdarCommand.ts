@@ -1,17 +1,10 @@
-import {
-  CommandModuleImpl,
-  type CommandModule,
-  type McpResult,
-} from "@/types/command";
-import * as aiCodeGenerator from "@/utils/ai/aiCodeGenerator";
-import { RegisterCommand } from "@/utils/command/commandRegistry";
 import * as strings from "@/utils/templating/strings";
 import * as importer from "@/utils/templating/importer";
 import * as vscode from "vscode";
 import * as mcp from "@/utils/ai/mcp";
 import * as commandRegistry from "@/utils/command/commandRegistry";
-import * as commandModule from "@/types/command";
-import * as inputs from "@/utils/vscode/input";
+import * as commandModule from "@/types/commandModule";
+import * as inputs from "@/utils/vscode/inputs";
 import * as fs from "@/utils/vscode/fs";
 
 function ixdarCommandTemplate(
@@ -34,7 +27,7 @@ const commandFunc = async () => {
 ${indentedBody}
 };
 
-const mcpFunc = mcp.executeCommand(commandName, (args: any) => "Command ${newCommandName} executed");
+const mcpFunc = ${importer.getModuleName(mcp)}.executeCommand(commandName, (args: any) => "Command ${newCommandName} executed");
 
 const description = "${newCommandDescription.replace(/"/g, '\\"')}";
 const inputSchema = {
@@ -42,7 +35,7 @@ const inputSchema = {
   properties: {},
 };
 
-const command: CommandModule = new CommandModuleImpl(
+const command: ${importer.getModuleName(commandModule)}.CommandModule = new ${importer.getModuleName(commandModule)}.CommandModuleImpl(
   repoName,
   commandName,
   languages,
@@ -52,7 +45,7 @@ const command: CommandModule = new CommandModuleImpl(
   mcpFunc
 );
 
-@RegisterCommand
+@${importer.getModuleName(commandRegistry)}.RegisterCommand
 class CommandExport {
   static default = command;
 }
@@ -95,22 +88,14 @@ const commandFunc = async () => {
   await vscode.window.showTextDocument(newFileUri);
 };
 
-const mcpFunc = async (args: any): Promise<McpResult> => {
+const mcpFunc = async (args: any): Promise<commandModule.McpResult> => {
   try {
     const newCommandName = args.newCommandName;
     const newCommandDescription = args.description || "";
 
     const wsFolders = vscode.workspace.workspaceFolders;
     if (!wsFolders || wsFolders.length === 0) {
-      return {
-        content: [
-          {
-            type: "text",
-            text: JSON.stringify({ error: "No workspace folder is open" }),
-          },
-        ],
-        isError: true,
-      };
+      return mcp.returnMcpError("No workspace folder is open");
     }
 
     const commandsFolderUri = vscode.Uri.joinPath(
@@ -125,17 +110,9 @@ const mcpFunc = async (args: any): Promise<McpResult> => {
 
     try {
       await vscode.workspace.fs.stat(newFileUri);
-      return {
-        content: [
-          {
-            type: "text",
-            text: JSON.stringify({
-              error: `File for command '${newCommandName}' already exists`,
-            }),
-          },
-        ],
-        isError: true,
-      };
+      return mcp.returnMcpError(
+        `File for command '${newCommandName}' already exists`
+      );
     } catch {}
 
     let commandNames: string[] = [];
@@ -160,29 +137,11 @@ const mcpFunc = async (args: any): Promise<McpResult> => {
       Buffer.from(template, "utf8")
     );
 
-    return {
-      content: [
-        {
-          type: "text",
-          text: JSON.stringify(
-            {
-              success: true,
-              message: `Command ${newCommandName} created successfully`,
-              filePath: newFileUri.fsPath,
-            },
-            null,
-            2
-          ),
-        },
-      ],
-    };
+    return mcp.returnMcpSuccess(
+      `Command ${newCommandName} created successfully`
+    );
   } catch (error: any) {
-    return {
-      content: [
-        { type: "text", text: JSON.stringify({ error: error.message }) },
-      ],
-      isError: true,
-    };
+    return mcp.returnMcpError(error.message);
   }
 };
 
@@ -209,7 +168,7 @@ const inputSchema = {
   required: ["newCommandName"],
 };
 
-const command: CommandModule = new CommandModuleImpl(
+const command: commandModule.CommandModule = new commandModule.CommandModuleImpl(
   repoName,
   commandName,
   languages,
@@ -219,7 +178,7 @@ const command: CommandModule = new CommandModuleImpl(
   mcpFunc
 );
 
-@RegisterCommand
+@commandRegistry.RegisterCommand
 class CommandExport {
   static default = command;
 }

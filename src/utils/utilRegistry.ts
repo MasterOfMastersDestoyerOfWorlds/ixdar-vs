@@ -1,14 +1,20 @@
 /**
  * Registry system for tracking utility modules and their exported functions.
  * Modules register themselves via @RegisterUtilModule and individual functions
- * register via @UtilFuncRegistry.
+ * register
  */
 
+/**
+ * Function parameter information
+ */
 export interface FunctionParameterInfo {
   index: number;
   name: string;
 }
 
+/**
+ * Function metadata
+ */
 export interface FunctionMetadata {
   moduleName: string;
   functionName: string;
@@ -17,15 +23,29 @@ export interface FunctionMetadata {
   filePath?: string;
 }
 
+/**
+ * Utility module information
+ */
 export interface UtilModule {
   name: string;
   filePath: string;
 }
 
+/**
+ * Get the function key
+ * @param moduleName The name of the module
+ * @param functionName The name of the function
+ * @returns The function key
+ */
 function getFunctionKey(moduleName: string, functionName: string): string {
   return `${moduleName}:${functionName}`;
 }
 
+/**
+ * Extract parameter information from a function
+ * @param fn The function to extract parameter information from
+ * @returns The parameter information
+ */
 function extractParameterInfo(fn: Function): FunctionParameterInfo[] {
   const fnString = fn
     .toString()
@@ -76,6 +96,10 @@ export class UtilRegistry {
 
   private constructor() {}
 
+  /**
+   * Get the instance of the utility registry
+   * @returns The instance of the utility registry
+   */
   static getInstance(): UtilRegistry {
     if (!UtilRegistry.instance) {
       UtilRegistry.instance = new UtilRegistry();
@@ -83,6 +107,11 @@ export class UtilRegistry {
     return UtilRegistry.instance;
   }
 
+  /**
+   * Register a module with the utility registry
+   * @param moduleName The name of the module
+   * @param filePath The file path of the module
+   */
   registerModule(moduleName: string, filePath: string): void {
     if (!moduleName || !filePath) {
       console.warn("Attempted to register module without name or filePath");
@@ -98,6 +127,10 @@ export class UtilRegistry {
     }
   }
 
+  /**
+   * Register a function with the utility registry
+   * @param metadata The metadata of the function
+   */
   registerFunction(metadata: FunctionMetadata): void {
     if (!metadata.moduleName || !metadata.functionName) {
       console.warn("Attempted to register function without moduleName or functionName");
@@ -114,30 +147,57 @@ export class UtilRegistry {
     this.functionMetadata.set(key, metadataWithPath);
   }
 
+  /**
+   * Find a module by name
+   * @param moduleName The name of the module
+   * @returns The module
+   */
   findModuleByName(moduleName: string): UtilModule | undefined {
     return this.modules.get(moduleName);
   }
 
+  /**
+   * Get the file path of a module
+   * @param moduleName The name of the module
+   * @returns The file path of the module
+   */
   getModulePath(moduleName: string): string | undefined {
     return this.modules.get(moduleName)?.filePath;
   }
 
+  /**
+   * Get all modules
+   * @returns All modules
+   */
   getAllModules(): UtilModule[] {
     return Array.from(this.modules.values());
   }
 
+  /**
+   * Get all functions by module name
+   * @param moduleName The name of the module
+   * @returns All functions by module name
+   */
   getFunctionsByModule(moduleName: string): FunctionMetadata[] {
     return Array.from(this.functionMetadata.values()).filter(
       (metadata) => metadata.moduleName === moduleName
     );
   }
 
+  /**
+   * Find functions by name
+   * @param functionName The name of the function
+   * @returns All functions by name
+   */
   findFunctionsByName(functionName: string): FunctionMetadata[] {
     return Array.from(this.functionMetadata.values()).filter(
       (metadata) => metadata.functionName === functionName
     );
   }
 
+  /**
+   * Clear the utility registry
+   */
   clear(): void {
     this.modules.clear();
     this.functionMetadata.clear();

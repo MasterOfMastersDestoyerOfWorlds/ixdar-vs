@@ -3,7 +3,7 @@ import {
   CommandModuleImpl,
   type CommandModule,
   type McpResult,
-} from "@/types/command";
+} from "@/types/commandModule";
 import * as strings from "@/utils/templating/strings";
 import * as importer from "@/utils/templating/importer";
 import * as parser from "@/utils/templating/parser";
@@ -11,7 +11,7 @@ import * as mcp from "@/utils/ai/mcp";
 import { RegisterCommand } from "@/utils/command/commandRegistry";
 import * as fs from "@/utils/vscode/fs";
 import { MethodInfo } from "@/types/parser";
-import * as inputs from "@/utils/vscode/input";
+import * as inputs from "@/utils/vscode/inputs";
 
 /**
  * makeTemplateFromMethod: Lists all of the methods or functions in a file and allows you to make a template out of one of them

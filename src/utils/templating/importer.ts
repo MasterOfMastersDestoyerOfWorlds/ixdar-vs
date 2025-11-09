@@ -1,16 +1,21 @@
-/**
- * Get the module path for a given module export object.
- * Looks for the __modulePath export that was injected by the webpack loader.
- */
 
 import { UtilModule } from "../utilRegistry";
 
+/**
+ * Use this module for generation of import strings, module name, and module path extraction.
+ */
+
+/**
+ * Get the import string for a given module exports.
+ * @param moduleExports - The module exports to get the import for.
+ * @returns The import string for the given module exports.
+ */
 export function getImport(...moduleExports: any[]): string {
   let result = "";
   for (const moduleExport of moduleExports) {
     if (moduleExport && typeof moduleExport === "object") {
       result +=
-        `import * as ${moduleExport.__moduleName} from '${EXTENSION_NAME}/src${moduleExport.__modulePath}';` +
+        `import * as ${getModuleName(moduleExport)} from '${EXTENSION_NAME}/src${getModulePath(moduleExport)}';` +
         "\n";
     }
   }
@@ -24,7 +29,7 @@ export function getImportRelativeUtilModule(
   for (const moduleExport of moduleExports) {
     if (moduleExport && typeof moduleExport === "object") {
       result +=
-        `import * as ${moduleExport.name} from '@${moduleExport.filePath}';` +
+        `import * as ${getModuleName(moduleExport)} from '@${getModulePath(moduleExport)}';` +
         "\n";
     }
   }
@@ -36,11 +41,18 @@ export function getImportRelative(...moduleExports: any[]): string {
   for (const moduleExport of moduleExports) {
     if (moduleExport && typeof moduleExport === "object") {
       result +=
-        `import * as ${moduleExport.__moduleName} from '@${moduleExport.__modulePath}';` +
+        `import * as ${getModuleName(moduleExport)} from '@${getModulePath(moduleExport)}';` +
         "\n";
     }
   }
   return result;
+}
+
+export function getModuleName(moduleExport: any): string {
+  return moduleExport.__moduleName;
+}
+export function getModulePath(moduleExport: any): string {
+  return moduleExport.__modulePath;
 }
 
 /**
