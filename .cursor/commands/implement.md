@@ -40,7 +40,7 @@ The main functionality of the command, should do what the description says it do
 
 ## mcpFunc
 
-The functionality that is used when we call the command from an MCP server. Since there is no user interface, we need to know all relevant input before the function is called.
+The functionality that is used when we call the command from an MCP server. Since there is no user interface, we need to know all relevant input before the function is called. We also want to return contents of any temporary file that we would have made in the command flow to the MCP server as an output so that the caller can see the results.
 
 # Descriptions of commonly used modules
 
