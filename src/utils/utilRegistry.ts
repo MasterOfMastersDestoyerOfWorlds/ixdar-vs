@@ -174,6 +174,14 @@ export class UtilRegistry {
   }
 
   /**
+   * Get all registered function metadata
+   * @returns All function metadata entries
+   */
+  getAllFunctions(): FunctionMetadata[] {
+    return Array.from(this.functionMetadata.values());
+  }
+
+  /**
    * Get all functions by module name
    * @param moduleName The name of the module
    * @returns All functions by module name

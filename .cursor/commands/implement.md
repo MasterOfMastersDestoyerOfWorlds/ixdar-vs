@@ -44,7 +44,7 @@ The functionality that is used when we call the command from an MCP server. Sinc
 
 # Descriptions of commonly used modules
 
-These descriptions should be available at the top of each utils module in a js-doc marked with @description. If you beleive we need a new category of utility tell me and describe it before making it.
+These descriptions should be available at the top of each utils module in a js-doc marked with @description. If you beleive we need a new of utility file tell me and describe it before making it.
 
 ## VSCode
 
