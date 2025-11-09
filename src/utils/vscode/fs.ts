@@ -235,13 +235,16 @@ async function ensureIxGitIgnore(
 ): Promise<void> {
   let desiredGitIgnore = workspaceGitIgnore ?? "";
   if (!desiredGitIgnore.includes("node_modules/**")) {
-    desiredGitIgnore += "node_modules/**\n";
+    desiredGitIgnore += "\nnode_modules/**\n";
   }
   if (!desiredGitIgnore.includes("npm_modules/**")) {
-    desiredGitIgnore += "npm_modules/**\n";
+    desiredGitIgnore += "\nnpm_modules/**\n";
   }
   if (!desiredGitIgnore.includes("out/**")) {
-    desiredGitIgnore += "out/**\n";
+    desiredGitIgnore += "\nout/**\n";
+  }
+  if (!desiredGitIgnore.includes(".tmp/**")) {
+    desiredGitIgnore += "\n.tmp/**\n";
   }
   await vscode.workspace.fs.writeFile(
     ixGitIgnoreUri,
@@ -321,6 +324,43 @@ export async function createFile(
     newFileUri,
     Buffer.from(template, "utf8")
   );
+}
+
+/**
+ * Write content to a temporary file inside the workspace .ix folder.
+ * Ensures the directory exists and avoids overwriting existing files.
+ * @param fileName The desired file name for the temporary file.
+ * @param content The content to write to the file.
+ * @param workspaceFolder Optional workspace folder override.
+ * @returns The URI of the written temporary file.
+ */
+export async function writeWorkspaceTempFile(
+  fileName: string,
+  content: string,
+  workspaceFolder?: vscode.WorkspaceFolder
+): Promise<vscode.Uri> {
+  const ixFolder = await makeIxFolder(workspaceFolder);
+  const tempDir = vscode.Uri.joinPath(ixFolder, ".tmp");
+  const { name, ext } = path.parse(fileName);
+  let targetUri = vscode.Uri.joinPath(tempDir, fileName);
+  let suffix = 1;
+  while (true) {
+    try {
+      await vscode.workspace.fs.stat(targetUri);
+      const candidateName = `${name}-${suffix}${ext}`;
+      targetUri = vscode.Uri.joinPath(tempDir, candidateName);
+      suffix += 1;
+    } catch {
+      break;
+    }
+  }
+
+  await vscode.workspace.fs.writeFile(
+    targetUri,
+    Buffer.from(content, "utf8")
+  );
+
+  return targetUri;
 }
 
 /**
