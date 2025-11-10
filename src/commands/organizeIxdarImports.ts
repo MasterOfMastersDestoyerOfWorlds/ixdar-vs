@@ -1,11 +1,8 @@
-import * as input from '@/utils/vscode/inputs';
-import * as importer from '@/utils/templating/importer';
-import {
-  CommandModuleImpl,
-  type CommandModule
-} from "@/types/commandModule";
-import { RegisterCommand } from "@/utils/command/commandRegistry";
-import * as mcp from "@/utils/ai/mcp";
+import * as input from "@/utils/vscode/userInputs";
+import * as importer from "@/utils/templating/importer";
+import * as commandModule from "@/types/command/commandModule";
+import * as CommandInputPlan from "@/types/command/CommandInputPlan";
+import * as commandRegistry from "@/utils/command/commandRegistry";
 import { UtilModule, UtilRegistry } from "@/utils/utilRegistry";
 import * as vscode from "vscode";
 
@@ -19,88 +16,104 @@ const repoName = undefined;
 
 
 
-const commandFunc = async () => {
-  const editor = input.getActiveEditor();
+type InputValues = Record<string, never>;
+interface CommandResult {
+  addedImports: number;
+  missingSymbols: string[];
+}
 
-  const document = editor.document;
-  const documentUri = document.uri;
+const pipeline: commandModule.CommandPipeline<InputValues, CommandResult> = {
+  input: () => CommandInputPlan.createInputPlan<InputValues>(() => {}),
+  execute: async (context) => {
+    const editor = input.getActiveEditor();
 
-  const diagnostics = vscode.languages.getDiagnostics(documentUri);
+    const document = editor.document;
+    const documentUri = document.uri;
 
-  const unresolvedSymbols = new Set<string>();
+    const diagnostics = vscode.languages.getDiagnostics(documentUri);
 
-  for (const diagnostic of diagnostics) {
-    const message = diagnostic.message;
-    const cannotFindMatch = message.match(/Cannot find (?:name|namespace) '([^']+)'/);
-    if (cannotFindMatch) {
-      unresolvedSymbols.add(cannotFindMatch[1]);
-    }
-  }
+    const unresolvedSymbols = new Set<string>();
 
-  if (unresolvedSymbols.size === 0) {
-    vscode.window.showInformationMessage("No unresolved symbols found");
-    return;
-  }
-
-  const registry = UtilRegistry.getInstance();
-  const namedImportsToAdd : UtilModule[] = [];
-  const existingImports = importer.parseExistingImports(document.getText());
-
-  for (const symbolName of unresolvedSymbols) {
-    const moduleMatch = registry.findModuleByName(symbolName);
-
-    if (moduleMatch) {
-      const existingPath = existingImports.namespace.get(symbolName);
-      if (!existingPath ) {
-        namedImportsToAdd.push(moduleMatch);
+    for (const diagnostic of diagnostics) {
+      const message = diagnostic.message;
+      const cannotFindMatch = message.match(
+        /Cannot find (?:name|namespace) '([^']+)'/
+      );
+      if (cannotFindMatch) {
+        unresolvedSymbols.add(cannotFindMatch[1]);
       }
-      continue;
     }
-  }
 
-  if (namedImportsToAdd.length === 0) {
-    vscode.window.showInformationMessage("No matching modules found in registry");
-    return;
-  }
+    if (unresolvedSymbols.size === 0) {
+      context.addWarning("No unresolved symbols found.");
+      return { addedImports: 0, missingSymbols: [] };
+    }
 
-  const importStatements = importer.getImportRelativeUtilModule(...namedImportsToAdd);
-  if (!importStatements) {
-    vscode.window.showInformationMessage("No imports to add");
-    return;
-  }
+    const registry = UtilRegistry.getInstance();
+    const namedImportsToAdd: UtilModule[] = [];
+    const existingImports = importer.parseExistingImports(document.getText());
 
-  const edit = new vscode.WorkspaceEdit();
-  edit.insert(documentUri, new vscode.Position(0, 0), importStatements);
+    for (const symbolName of unresolvedSymbols) {
+      const moduleMatch = registry.findModuleByName(symbolName);
 
-  await vscode.workspace.applyEdit(edit);
+      if (moduleMatch) {
+        const existingPath = existingImports.namespace.get(symbolName);
+        if (!existingPath) {
+          namedImportsToAdd.push(moduleMatch);
+        }
+      }
+    }
 
-  const addedCount = namedImportsToAdd.length;
-  vscode.window.showInformationMessage(`Added ${addedCount} import(s)`);
+    if (namedImportsToAdd.length === 0) {
+      context.addWarning("No matching modules found in the registry.");
+      return { addedImports: 0, missingSymbols: Array.from(unresolvedSymbols) };
+    }
+
+    const importStatements = importer.getImportRelativeUtilModule(
+      ...namedImportsToAdd
+    );
+    if (!importStatements) {
+      context.addWarning("No imports to add.");
+      return { addedImports: 0, missingSymbols: Array.from(unresolvedSymbols) };
+    }
+
+    const edit = new vscode.WorkspaceEdit();
+    edit.insert(documentUri, new vscode.Position(0, 0), importStatements);
+
+    await vscode.workspace.applyEdit(edit);
+
+    const addedCount = namedImportsToAdd.length;
+    return {
+      addedImports: addedCount,
+      missingSymbols: Array.from(unresolvedSymbols),
+    };
+  },
+  cleanup: async (context, _inputs, result, error) => {
+    if (error || !result) {
+      return;
+    }
+
+    if (result.addedImports > 0) {
+      context.addMessage(`Added ${result.addedImports} import(s).`);
+    }
+  },
 };
-
-const mcpFunc = mcp.executeCommand(
-  commandName,
-  (args: any) => "Command organizeIxdarImports executed"
-);
 
 const description =
   "Looks at any unknown objects in a typescript file and if it matches one of the filenames under ixdar-vs/src/utils or ixdar-vs/src/types it imports it at the top of the file with the @ symbol";
-const inputSchema = {
-  type: "object",
-  properties: {},
-};
 
-const command: CommandModule = new CommandModuleImpl(
+const command: commandModule.CommandModule = new commandModule.CommandModuleImpl<
+  InputValues,
+  CommandResult
+>({
   repoName,
   commandName,
   languages,
-  commandFunc,
   description,
-  inputSchema,
-  mcpFunc
-);
+  pipeline,
+});
 
-@RegisterCommand
+@commandRegistry.RegisterCommand
 class CommandExport {
   static default = command;
 }

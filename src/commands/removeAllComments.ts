@@ -1,14 +1,10 @@
 import * as vscode from "vscode";
-import {
-  CommandModuleImpl,
-  type CommandModule,
-  type McpResult,
-} from "@/types/commandModule";
-import * as mcp from "@/utils/ai/mcp";
+import * as commandModule from "@/types/command/commandModule";
+import * as CommandInputPlan from "@/types/command/CommandInputPlan";
 import * as parser from "@/utils/templating/parser";
 import Parser from "tree-sitter";
-import { RegisterCommand } from "@/utils/command/commandRegistry";
-import * as inputs from "@/utils/vscode/inputs";
+import * as commandRegistry from "@/utils/command/commandRegistry";
+import * as inputs from "@/utils/vscode/userInputs";
 
 /**
  * removeAllComments: Remove all single-line comments from the current file using tree-sitter AST parsing.
@@ -25,33 +21,35 @@ const languages = [
 ];
 const repoName = undefined;
 
-export const commandFunc = async (parseTree?: Parser.Tree) => {
-  const editor = inputs.getActiveEditor();
-
+async function removeSingleLineComments(
+  editor: vscode.TextEditor,
+  parseTree?: Parser.Tree
+): Promise<number> {
   const document = editor.document;
   const languageId = document.languageId;
 
-  const tree = parseTree || await parser.getParseTree(document);
+  const tree = parseTree || (await parser.getParseTree(document));
   const language = parser.getLanguage(languageId);
 
   const lineCommentKeyword = parser.getLineCommentKeyword(languageId);
   const commentSymbol = parser.getCommentSymbol(languageId);
 
   const query = new Parser.Query(language, `(${lineCommentKeyword}) @c`);
-
   const matches = query.matches(tree.rootNode);
 
   const nodesToRemove = matches
-    .map((match: { captures: { node: any }[] }) => match.captures[0].node)
+    .map((match: { captures: { node: Parser.SyntaxNode }[] }) => match.captures[0].node)
     .filter(
-      (node: Parser.SyntaxNode) =>
+      (node) =>
         node.type === lineCommentKeyword && node.text.startsWith(commentSymbol)
     );
 
+  if (nodesToRemove.length === 0) {
+    return 0;
+  }
 
   await editor.edit((editBuilder) => {
     for (const node of nodesToRemove) {
-      const nodeText = node.text;
       const prevSibling = node.previousSibling;
       const isFullLine =
         prevSibling === null ||
@@ -73,32 +71,54 @@ export const commandFunc = async (parseTree?: Parser.Tree) => {
     }
   });
 
-  vscode.window.showInformationMessage(`Removed all single-line comments.`);
-};
+  return nodesToRemove.length;
+}
 
-const mcpFunc = mcp.executeCommand(
-  commandName,
-  () => "Removed all single-line comments from the active file."
-);
+type InputValues = Record<string, never>;
+interface CommandResult {
+  removedComments: number;
+}
+
+const pipeline: commandModule.CommandPipeline<InputValues, CommandResult> = {
+  input: () => CommandInputPlan.createInputPlan<InputValues>(() => {}),
+  execute: async () => {
+    const editor = inputs.getActiveEditor();
+    const removed = await removeSingleLineComments(editor);
+    return {
+      removedComments: removed,
+    };
+  },
+  cleanup: async (context, _inputs, result, _error) => {
+    if (!result) {
+      return;
+    }
+
+    if (result.removedComments === 0) {
+      context.addWarning("No single-line comments found.");
+      return;
+    }
+
+    context.addMessage(
+      `Removed ${result.removedComments} single-line comment(s).`
+    );
+  },
+};
 
 const description =
   "Remove all single-line comments from the current file (// or # based on language). Does not remove block comments.";
-const inputSchema = {
-  type: "object",
-  properties: {},
-};
 
-const command: CommandModule = new CommandModuleImpl(
+const command: commandModule.CommandModule = new commandModule.CommandModuleImpl<
+  InputValues,
+  CommandResult
+>({
   repoName,
   commandName,
   languages,
-  commandFunc,
   description,
-  inputSchema,
-  mcpFunc
-);
+  pipeline,
+});
 
-@RegisterCommand
+@commandRegistry.RegisterCommand
 class CommandExport {
   static default = command;
 }

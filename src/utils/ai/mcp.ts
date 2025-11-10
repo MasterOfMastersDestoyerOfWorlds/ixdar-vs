@@ -1,4 +1,4 @@
-import { McpResult } from "@/types/commandModule";
+import { McpResult } from "@/types/command/commandModule";
 import * as vscode from "vscode";
 import * as importer from "@/utils/templating/importer";
 import * as strings from "@/utils/templating/strings";

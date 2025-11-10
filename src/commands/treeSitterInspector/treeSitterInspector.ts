@@ -1,11 +1,7 @@
 import * as vscode from "vscode";
-import {
-  CommandModuleImpl,
-  type CommandModule,
-  type McpResult,
-} from "@/types/commandModule";
-import * as mcp from "@/utils/ai/mcp";
-import { RegisterCommand } from "@/utils/command/commandRegistry";
+import * as commandModule from "@/types/command/commandModule";
+import * as CommandInputPlan from "@/types/command/CommandInputPlan";
+import * as commandRegistry from "@/utils/command/commandRegistry";
 import * as parser from "@/utils/templating/parser";
 import * as decor from "@/utils/vscode/decor";
 import type Parser from "tree-sitter";
@@ -23,29 +19,33 @@ let tokenDecorationType: vscode.TextEditorDecorationType;
 let queryDecorationType: vscode.TextEditorDecorationType;
 let hoverProvider: vscode.Disposable | undefined;
 
-const commandFunc = async () => {
+async function runTreeSitterInspector(
+  context: commandModule.CommandRuntimeContext
+): Promise<boolean> {
   const editor = vscode.window.activeTextEditor;
   if (!editor) {
-    vscode.window.showErrorMessage("No active text editor found.");
-    return;
+    const message = "No active text editor found.";
+    context.addError(message);
+    vscode.window.showErrorMessage(message);
+    return false;
   }
 
   const document = editor.document;
   const tree = parser.getParseTree(document);
 
   if (!tree) {
-    vscode.window.showErrorMessage(
-      `Tree-sitter not supported for language: ${document.languageId}`
-    );
-    return;
+    const message = `Tree-sitter not supported for language: ${document.languageId}`;
+    context.addError(message);
+    vscode.window.showErrorMessage(message);
+    return false;
   }
 
   const language = parser.getLanguage(document.languageId);
   if (!language) {
-    vscode.window.showErrorMessage(
-      `Could not get language module for: ${document.languageId}`
-    );
-    return;
+    const message = `Could not get language module for: ${document.languageId}`;
+    context.addError(message);
+    vscode.window.showErrorMessage(message);
+    return false;
   }
 
   if (tokenDecorationType) {
@@ -149,6 +149,7 @@ const commandFunc = async () => {
     );
 
     currentPanel.onDidDispose(() => {
+      context.addMessage("Tree-sitter inspector closed.");
       currentPanel = undefined;
       if (tokenDecorationType) {
         editor.setDecorations(tokenDecorationType, []);
@@ -204,34 +205,43 @@ const commandFunc = async () => {
           matchCount: matchRanges.length,
           error: null,
         });
+        context.addMessage(`Query matched ${matchRanges.length} node(s).`);
         break;
     }
   }, undefined);
-};
+  context.addMessage("Tree-sitter inspector initialized.");
+  return true;
+}
 
-const mcpFunc = mcp.executeCommand(
-  commandName,
-  (args: any) => "Command treeSitterInspector executed"
-);
+type InputValues = Record<string, never>;
+interface CommandResult {
+  opened: boolean;
+}
+
+const pipeline: commandModule.CommandPipeline<InputValues, CommandResult> = {
+  input: () => CommandInputPlan.createInputPlan<InputValues>(() => {}),
+  execute: async (context) => {
+    const opened = await runTreeSitterInspector(context);
+    return { opened };
+  },
+  cleanup: async () => {},
+};
 
 const description =
   "Create a tree-sitter inspector command with a webview panel that decorates all tokens, shows token info on hover, and has an input box for validating and highlighting tree-sitter queries in real-time.";
-const inputSchema = {
-  type: "object",
-  properties: {},
-};
 
-const command: CommandModule = new CommandModuleImpl(
+const command: commandModule.CommandModule = new commandModule.CommandModuleImpl<
+  InputValues,
+  CommandResult
+>({
   repoName,
   commandName,
   languages,
-  commandFunc,
   description,
-  inputSchema,
-  mcpFunc
-);
+  pipeline,
+});
 
-@RegisterCommand
+@commandRegistry.RegisterCommand
 class CommandExport {
   static default = command;
 }

@@ -258,4 +258,25 @@ export async function captureRegex(documentText: string, regexString: string): P
   await vscode.env.clipboard.writeText(textToCopy);
   return matchedTexts;
 }
+export function formatUnknownError(error: unknown): string {
+  if (error instanceof Error) {
+    return error.message;
+  }
+  if (typeof error === "string") {
+    return error;
+  }
+  try {
+    return JSON.stringify(error);
+  } catch {
+    return String(error);
+  }
+}
+
+export function safeStringify(value: unknown): string {
+  try {
+    return JSON.stringify(value, null, 2);
+  } catch {
+    return String(value);
+  }
+}
 

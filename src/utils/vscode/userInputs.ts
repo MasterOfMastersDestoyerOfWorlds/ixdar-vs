@@ -29,6 +29,25 @@ export class NoActiveEditorError extends Error {
 }
 
 /**
+ * Select a folder from the user.
+ * @returns The selected folder.
+ */
+export async function selectFolder(): Promise<vscode.Uri[]> {
+  const folderSelection = await vscode.window.showOpenDialog({
+    canSelectFiles: false,
+    canSelectFolders: true,
+    canSelectMany: false,
+    openLabel: "Select Folder",
+    title: "Select folder to process",
+  });
+
+  if (!folderSelection || folderSelection.length === 0) {
+    throw new InvalidInputError("No folder selected.");
+  }
+  return folderSelection;
+}
+
+/**
  * Get the replacement targets for making a template from a file from the user.
  * @returns The replacement targets.
  */

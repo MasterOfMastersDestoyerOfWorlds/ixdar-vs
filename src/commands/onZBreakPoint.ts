@@ -1,48 +1,68 @@
 import * as vscode from "vscode";
-import { CommandModuleImpl, type CommandModule, type McpResult } from "@/types/commandModule";
-import * as mcp from "@/utils/ai/mcp";
-import { RegisterCommand } from "@/utils/command/commandRegistry";
+import * as commandModule from "@/types/command/commandModule";
+import * as CommandInputPlan from "@/types/command/CommandInputPlan";
+import * as commandRegistry from "@/utils/command/commandRegistry";
 
 const commandName = "onZBreakPoint";
 const languages = ["c", "cpp", "java", "csharp"];
 const repoName = undefined;
-const commandFunc = async () => {
-  const editor = vscode.window.activeTextEditor;
-  if (!editor) {
-    return;
-  }
-  const position = editor.selection.active;
-  const snippet = new vscode.SnippetString();
-  snippet.appendText("if(");
-  snippet.appendTabstop();
-  snippet.appendText(`){\n` + `\tfloat z_breakPoint = 0;\n` + `}`);
-  editor.insertSnippet(snippet, position);
-  const breakline = editor.document.lineAt(position.line + 1);
-  const breakpoint = new vscode.SourceBreakpoint(
-    new vscode.Location(editor.document.uri, breakline.range)
-  );
-  vscode.debug.addBreakpoints([breakpoint]);
-  vscode.window.showInformationMessage("Breakpoint Set");
+
+type InputValues = Record<string, never>;
+interface CommandResult {
+  breakpointAdded: boolean;
+  line?: number;
+}
+
+const pipeline: commandModule.CommandPipeline<InputValues, CommandResult> = {
+  input: () => CommandInputPlan.createInputPlan<InputValues>(() => {}),
+  execute: async () => {
+    const editor = vscode.window.activeTextEditor;
+    if (!editor) {
+      throw new Error("No active editor found.");
+    }
+
+    const position = editor.selection.active;
+    const snippet = new vscode.SnippetString();
+    snippet.appendText("if(");
+    snippet.appendTabstop();
+    snippet.appendText(`){\n\tfloat z_breakPoint = 0;\n}`);
+    await editor.insertSnippet(snippet, position);
+
+    const breakline = editor.document.lineAt(position.line + 1);
+    const breakpoint = new vscode.SourceBreakpoint(
+      new vscode.Location(editor.document.uri, breakline.range)
+    );
+    vscode.debug.addBreakpoints([breakpoint]);
+
+    return {
+      breakpointAdded: true,
+      line: breakline.lineNumber,
+    };
+  },
+  cleanup: async (context, _inputs, result, error) => {
+    if (error || !result?.breakpointAdded) {
+      return;
+    }
+
+    context.addMessage("Breakpoint set and snippet inserted.");
+  },
 };
 
-const mcpFunc = mcp.executeCommand(commandName, "Z breakpoint inserted");
+const description =
+  "Insert a z_breakpoint snippet at the current cursor position. Creates a conditional block with a breakpoint.";
 
-const description = "Insert a z_breakpoint snippet at the current cursor position. Creates a conditional block with a breakpoint."
-const inputSchema = {
-	type: "object", properties: {} 
-};
-
-const command: CommandModule = new CommandModuleImpl(
+const command: commandModule.CommandModule = new commandModule.CommandModuleImpl<
+  InputValues,
+  CommandResult
+>({
   repoName,
   commandName,
   languages,
-  commandFunc,
   description,
-  inputSchema,
-  mcpFunc
-);
+  pipeline,
+});
 
-@RegisterCommand
+@commandRegistry.RegisterCommand
 class CommandExport {
   static default = command;
 }

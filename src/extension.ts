@@ -1,6 +1,6 @@
 import * as vscode from "vscode";
 import * as http from "http";
-import { CommandModuleImpl, type CommandModule } from "@/types/commandModule";
+import type { CommandModule } from "@/types/command/commandModule";
 import {
   getActiveRepoName,
   getActiveLanguageId,
@@ -178,13 +178,6 @@ export async function activate(context: vscode.ExtensionContext) {
               return mcp.returnMcpError(
                 `Tool not available in this repository or language`
               );
-            }
-            const validation = CommandModuleImpl.isValidRequest(
-              request.params.arguments,
-              mod.mcp.tool.inputSchema
-            );
-            if (!validation.valid) {
-              return mcp.returnMcpError(validation.errors.join(", "));
             }
             return await mod.mcp.call(request.params.arguments ?? {});
           }

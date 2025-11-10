@@ -1,11 +1,9 @@
 
-import * as vscode from "vscode";
-import * as commandModule from '@/types/commandModule';
-import * as mcp from '@/utils/ai/mcp';
-import * as utilRegistry from '@/utils/utilRegistry';
-import * as fs from '@/utils/vscode/fs';
-import * as commandRegistry from '@/utils/command/commandRegistry';
-
+import * as commandModule from "@/types/command/commandModule";
+import * as CommandInputPlan from "@/types/command/CommandInputPlan";
+import * as utilRegistry from "@/utils/utilRegistry";
+import * as fs from "@/utils/vscode/fs";
+import * as commandRegistry from "@/utils/command/commandRegistry";
 
 /**
  * listUtilsModules: List all util modules in the registry and output them to a temporary file
@@ -13,18 +11,29 @@ import * as commandRegistry from '@/utils/command/commandRegistry';
 const commandName = "listUtilsModules";
 const languages = undefined;
 const repoName = undefined;
-const commandFunc = async () => {
-  try {
+
+type InputValues = Record<string, never>;
+interface CommandResult {
+  moduleCount: number;
+  filePath?: string;
+  content?: string;
+}
+
+const pipeline: commandModule.CommandPipeline<InputValues, CommandResult> = {
+  input: () => CommandInputPlan.createInputPlan<InputValues>(() => {}),
+  execute: async (context) => {
     const registry = utilRegistry.UtilRegistry.getInstance();
     const utilModules = registry.getAllModules();
 
     if (utilModules.length === 0) {
-      vscode.window.showWarningMessage("No utility modules are currently registered.");
-      return;
+      context.addWarning("No utility modules are currently registered.");
+      return { moduleCount: 0 };
     }
 
     const generatedAt = new Date();
-    const sortedModules = [...utilModules].sort((a, b) => a.name.localeCompare(b.name));
+    const sortedModules = [...utilModules].sort((a, b) =>
+      a.name.localeCompare(b.name)
+    );
     const moduleLines = sortedModules.map((module, index) => {
       const location = module.filePath ? ` (${module.filePath})` : "";
       return `${index + 1}. ${module.name}${location}`;
@@ -40,48 +49,45 @@ const commandFunc = async () => {
     ].join("\n");
 
     const timestamp = generatedAt.toISOString().replace(/[:.]/g, "-");
-    const baseName = commandName
-      .replace(/([a-z0-9])([A-Z])/g, "$1-$2")
-      .toLowerCase();
+    const baseName = commandName.replace(/([a-z0-9])([A-Z])/g, "$1-$2").toLowerCase();
     const targetFileName = `${baseName}-${timestamp}.txt`;
 
-    const tempFileUri = await fs.writeWorkspaceTempFile(
-      targetFileName,
-      content
-    );
+    const tempFileUri = await fs.writeWorkspaceTempFile(targetFileName, content);
 
-    const document = await vscode.workspace.openTextDocument(tempFileUri);
-    await vscode.window.showTextDocument(document, { preview: false });
+    if (context.collectFile) {
+      await context.collectFile(tempFileUri.fsPath, "Util module listing");
+    }
 
-    vscode.window.showInformationMessage(
-      `Listed ${sortedModules.length} util modules to ${tempFileUri.fsPath}`
+    return {
+      moduleCount: sortedModules.length,
+      filePath: tempFileUri.fsPath,
+      content,
+    };
+  },
+  cleanup: async (context, _inputs, result, error) => {
+    if (error || !result || result.moduleCount === 0) {
+      return;
+    }
+
+    context.addMessage(
+      `Listed ${result.moduleCount} util modules to ${result.filePath}`
     );
-  } catch (error: any) {
-    const message =
-      typeof error?.message === "string"
-        ? error.message
-        : "Unknown error listing util modules.";
-    vscode.window.showErrorMessage(`Failed to list util modules: ${message}`);
-  }
+  },
 };
 
-const mcpFunc = mcp.executeCommand(commandName, (args: any) => "Command listUtilsModules executed");
+const description =
+  "List all util modules in the registry and output them to a temporary file";
 
-const description = "List all util modules in the registry and output them to a temporary file";
-const inputSchema = {
-  type: "object",
-  properties: {},
-};
-
-const command: commandModule.CommandModule = new commandModule.CommandModuleImpl(
+const command: commandModule.CommandModule = new commandModule.CommandModuleImpl<
+  InputValues,
+  CommandResult
+>({
   repoName,
   commandName,
   languages,
-  commandFunc,
   description,
-  inputSchema,
-  mcpFunc
-);
+  pipeline,
+});
 
 @commandRegistry.RegisterCommand
 class CommandExport {

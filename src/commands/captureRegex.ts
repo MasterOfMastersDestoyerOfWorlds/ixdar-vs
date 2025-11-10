@@ -1,109 +1,133 @@
 import * as vscode from "vscode";
-import {
-  CommandModuleImpl,
-  type CommandModule,
-  type McpResult,
-} from "@/types/commandModule";
-import * as mcp from "@/utils/ai/mcp";
-import { RegisterCommand } from "@/utils/command/commandRegistry";
+import * as commandModule from "@/types/command/commandModule";
+import * as CommandInputPlan from "@/types/command/CommandInputPlan";
 import * as decor from "@/utils/vscode/decor";
-import * as inputs from "@/utils/vscode/inputs";
+import * as userInputs from "@/utils/vscode/userInputs";
 import * as strings from "@/utils/templating/strings";
+import * as commandRegistry from "@/utils/command/commandRegistry";
 
 /**
- * captureRegex: displays a textbox that accepts regex and turns the text red in the box if the regex is invalid, selects/highlights all of the regex matches in the open file  and then copies them to the copy buffer on enter
+ * captureRegex: displays a textbox that accepts regex and turns the text red in the box if the regex is invalid, selects/highlights all of the regex matches in the open file and then copies them to the copy buffer on enter
  */
 const commandName = "captureRegex";
 const languages = undefined;
 const repoName = undefined;
-const commandFunc = async () => {
-  const editor = inputs.getActiveEditor();
 
-  const document = editor.document;
-  const documentText = document.getText();
+interface InputValues {
+  regex: string;
+}
 
-  const matchDecorationType = decor.highlightDecor();
+interface CommandResult {
+  matchCount: number;
+  regex: string;
+}
 
-  try {
-    const regexString = await vscode.window.showInputBox({
-      prompt:
-        "Enter a regular expression to find, select, and copy all matches.",
-      placeHolder: "e.g., const\\s+(\\w+)",
-      validateInput: (text: string): string | null => {
-        if (!text) {
+const pipeline: commandModule.CommandPipeline<InputValues, CommandResult> = {
+  input: () =>
+    CommandInputPlan.createInputPlan<InputValues>((builder) => {
+      builder.step({
+        key: "regex",
+        schema: {
+          type: "string",
+          description:
+            "Regular expression to capture. Matches will be copied to the clipboard.",
+        },
+        prompt: async () => {
+          const editor = userInputs.getActiveEditor();
+          const document = editor.document;
+          const documentText = document.getText();
+          const matchDecorationType = decor.highlightDecor();
+
+          const regexString = await vscode.window.showInputBox({
+            prompt:
+              "Enter a regular expression to find, select, and copy all matches.",
+            placeHolder: "e.g., const\\s+(\\w+)",
+            validateInput: (text: string): string | null => {
+              if (!text) {
+                decor.clearDecorations(editor, matchDecorationType);
+                return null;
+              }
+              try {
+                const regex = new RegExp(text, "g");
+                const ranges: vscode.Range[] = [];
+                let match: RegExpExecArray | null;
+
+                while ((match = regex.exec(documentText)) !== null) {
+                  if (match.index === regex.lastIndex) {
+                    regex.lastIndex++;
+                  }
+                  ranges.push(
+                    new vscode.Range(
+                      document.positionAt(match.index),
+                      document.positionAt(match.index + match[0].length)
+                    )
+                  );
+                }
+
+                editor.setDecorations(matchDecorationType, ranges);
+                return null;
+              } catch {
+                decor.clearDecorations(editor, matchDecorationType);
+                return "Invalid regular expression.";
+              }
+            },
+          });
+
           decor.clearDecorations(editor, matchDecorationType);
-          return null;
-        }
-        try {
-          const regex = new RegExp(text, "g");
 
-          const ranges: vscode.Range[] = [];
-          let match;
-
-          while ((match = regex.exec(documentText)) !== null) {
-            if (match.index === regex.lastIndex) {
-              regex.lastIndex++;
-            }
-            ranges.push(
-              new vscode.Range(
-                document.positionAt(match.index),
-                document.positionAt(match.index + match[0].length)
-              )
-            );
+          if (!regexString) {
+            throw new Error("No regular expression provided.");
           }
 
-          editor.setDecorations(matchDecorationType, ranges);
+          return regexString;
+        },
+        resolveFromArgs: async ({ args }) => {
+          const regex =
+            (typeof args.regex === "string" && args.regex) ||
+            (typeof args.pattern === "string" && args.pattern);
+          if (!regex) {
+            throw new Error("Property 'regex' is required.");
+          }
+          new RegExp(regex, "g"); // Validate
+          return regex;
+        },
+      });
+    }),
+  execute: async (_context, inputs) => {
+    const editor = userInputs.getActiveEditor();
+    const documentText = editor.document.getText();
 
-          return null;
-        } catch (e) {
-          decor.clearDecorations(editor, matchDecorationType);
-          return "Invalid regular expression.";
-        }
-      },
-    });
-    decor.clearDecorations(editor, matchDecorationType);
+    const matches = await strings.captureRegex(documentText, inputs.regex);
 
-    if (regexString === undefined || !regexString) {
-      vscode.window.showInformationMessage("No regular expression provided.");
+    return {
+      matchCount: matches.length,
+      regex: inputs.regex,
+    };
+  },
+  cleanup: async (context, _inputs, result, error) => {
+    if (error || !result) {
       return;
     }
 
-    const matchedTexts = await strings.captureRegex(documentText, regexString);
-
-    vscode.window.showInformationMessage(
-      `${matchedTexts.length} match${matchedTexts.length > 1 ? "es" : ""} selected and copied to clipboard.`
+    context.addMessage(
+      `${result.matchCount} match${result.matchCount === 1 ? "" : "es"} selected and copied to clipboard.`
     );
-  } catch (e) {
-    decor.clearDecorations(editor, matchDecorationType);
-    vscode.window.showErrorMessage(
-      `An unexpected error occurred: ${e instanceof Error ? e.message : String(e)}`
-    );
-  }
+  },
 };
-
-const mcpFunc = mcp.executeCommand(
-  commandName,
-  (args: any) => "Command captureRegex executed"
-);
 
 const description =
-  "displays a textbox that accepts regex and turns the text red in the box if the regex is invalid, selects/highlights all of the regex matches in the open file  and then copies them to the copy buffer on enter";
-const inputSchema = {
-  type: "object",
-  properties: {},
-};
+  "Displays a textbox that accepts regex and turns the text red in the box if the regex is invalid, selects/highlights all of the regex matches in the open file and then copies them to the copy buffer on enter";
 
-const command: CommandModule = new CommandModuleImpl(
-  repoName,
-  commandName,
-  languages,
-  commandFunc,
-  description,
-  inputSchema,
-  mcpFunc
-);
+const command: commandModule.CommandModule =
+  new commandModule.CommandModuleImpl<InputValues, CommandResult>({
+    repoName,
+    commandName,
+    languages,
+    description,
+    pipeline,
+  });
 
-@RegisterCommand
+@commandRegistry.RegisterCommand
 class CommandExport {
   static default = command;
 }

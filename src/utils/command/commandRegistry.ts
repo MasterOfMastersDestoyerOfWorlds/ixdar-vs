@@ -1,4 +1,8 @@
-import { CommandModule, McpResult } from "@/types/commandModule";
+import {
+  CommandModule,
+  McpResult,
+} from "@/types/command/commandModule";
+import { createInputPlan } from "@/types/command/CommandInputPlan";
 import * as vscode from "vscode";
 /**
  * Singleton registry for command modules.
@@ -120,6 +124,10 @@ export async function getVscodeCommandQuickPickItems(): Promise<
         category: "general",
       },
       vscodeCommand: { id: cmd, register: () => {} },
+      pipeline: {
+        input: () => createInputPlan<Record<string, never>>(() => {}),
+        execute: async () => undefined,
+      },
       mcp: {
         enabled: false,
         tool: {
@@ -127,6 +135,7 @@ export async function getVscodeCommandQuickPickItems(): Promise<
           inputSchema: {
             type: "object",
             properties: {},
+            required: [],
           },
         },
         call: () => Promise.resolve(new McpResult()),

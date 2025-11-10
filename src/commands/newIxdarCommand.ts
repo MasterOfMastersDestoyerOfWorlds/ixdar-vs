@@ -1,10 +1,9 @@
-import * as strings from "@/utils/templating/strings";
 import * as importer from "@/utils/templating/importer";
 import * as vscode from "vscode";
-import * as mcp from "@/utils/ai/mcp";
 import * as commandRegistry from "@/utils/command/commandRegistry";
-import * as commandModule from "@/types/commandModule";
-import * as inputs from "@/utils/vscode/inputs";
+import * as commandModule from "@/types/command/commandModule";
+import * as CommandInputPlan from "@/types/command/CommandInputPlan";
+import * as inputs from "@/utils/vscode/userInputs";
 import * as fs from "@/utils/vscode/fs";
 
 function ixdarCommandTemplate(
@@ -15,7 +14,7 @@ function ixdarCommandTemplate(
 ) {
   return `
 ${importer.getImportModule("vscode")}
-${importer.getImportRelative(commandModule, strings, mcp, commandRegistry)}
+${importer.getImportRelative(commandModule, commandRegistry)}
 ${additionalImports}
 /**
  * ${newCommandName}: ${newCommandDescription}
@@ -23,27 +22,34 @@ ${additionalImports}
 const commandName = "${newCommandName}";
 const languages = undefined;
 const repoName = undefined;
-const commandFunc = async () => {
-${indentedBody}
-};
 
-const mcpFunc = ${importer.getModuleName(mcp)}.executeCommand(commandName, (args: any) => "Command ${newCommandName} executed");
+type InputValues = Record<string, never>;
+type CommandResult = void;
+
+const pipeline: ${importer.getModuleName(commandModule)}.CommandPipeline<InputValues, CommandResult> = {
+  input: () =>
+    ${importer.getModuleName(commandModule)}.createInputPlan<InputValues>(() => {
+      // Add input steps with builder.step(...)
+    }),
+  execute: async (_context, _inputs) => {
+${indentedBody}
+  },
+  cleanup: async (context, _inputs, _result, error) => {
+    if (error) {
+      return;
+    }
+    context.addMessage("${newCommandName} completed.");
+  },
+};
 
 const description = "${newCommandDescription.replace(/"/g, '\\"')}";
-const inputSchema = {
-  type: "object",
-  properties: {},
-};
-
-const command: ${importer.getModuleName(commandModule)}.CommandModule = new ${importer.getModuleName(commandModule)}.CommandModuleImpl(
+const command: ${importer.getModuleName(commandModule)}.CommandModule = new ${importer.getModuleName(commandModule)}.CommandModuleImpl<InputValues, CommandResult>({
   repoName,
   commandName,
   languages,
-  commandFunc,
   description,
-  inputSchema,
-  mcpFunc
-);
+  pipeline,
+});
 
 @${importer.getModuleName(commandRegistry)}.RegisterCommand
 class CommandExport {
@@ -57,126 +63,122 @@ export default command;
 const commandName = "newIxdarCommand";
 const languages = undefined;
 const repoName = importer.EXTENSION_NAME;
-const commandFunc = async () => {
-  const newCommandName = await inputs.getCommandNameInput();
-  const newCommandDescription = await inputs.getCommandDescriptionInput();
-  const workspaceFolder = await fs.getWorkspaceFolder();
-  const commandsFolderUri = await fs.getCommandsFolderUri(workspaceFolder);
-  const newFileUri = vscode.Uri.joinPath(
-    commandsFolderUri,
-    `${newCommandName}.ts`
-  );
 
-  await fs.checkFileExists(newFileUri);
+interface InputValues {
+  newCommandName: string;
+  description: string;
+}
 
-  let commandFuncBody = "";
-  let additionalImports = "";
+interface CommandResult {
+  filePath: string;
+  commandName: string;
+  description: string;
+}
 
-  const indentedBody = commandFuncBody
-    .split("\n")
-    .map((line) => (line ? `  ${line}` : line))
-    .join("\n");
+const pipeline: commandModule.CommandPipeline<InputValues, CommandResult> = {
+  input: () =>
+    CommandInputPlan.createInputPlan<InputValues>((builder) => {
+      builder.step({
+        key: "newCommandName",
+        schema: {
+          type: "string",
+          description: "The name of the new command to create.",
+        },
+        prompt: async () => inputs.getCommandNameInput(),
+        resolveFromArgs: async ({ args }) => {
+          const value = args.newCommandName;
+          if (typeof value !== "string" || value.length === 0) {
+            throw new Error("Property 'newCommandName' is required.");
+          }
+          return value;
+        },
+      });
 
-  const template = ixdarCommandTemplate(
-    additionalImports,
-    newCommandName,
-    newCommandDescription,
-    indentedBody
-  );
-
-  await fs.createFile(newFileUri, template);
-  await vscode.window.showTextDocument(newFileUri);
-};
-
-const mcpFunc = async (args: any): Promise<commandModule.McpResult> => {
-  try {
-    const newCommandName = args.newCommandName;
-    const newCommandDescription = args.description || "";
-
-    const wsFolders = vscode.workspace.workspaceFolders;
-    if (!wsFolders || wsFolders.length === 0) {
-      return mcp.returnMcpError("No workspace folder is open");
-    }
-
-    const commandsFolderUri = vscode.Uri.joinPath(
-      wsFolders[0].uri,
-      "src",
-      "commands"
-    );
+      builder.step({
+        key: "description",
+        schema: {
+          type: "string",
+          description:
+            "Description of what the command should do (optional for MCP).",
+        },
+        required: false,
+        defaultValue: "",
+        prompt: async () => {
+          const description = await inputs.getCommandDescriptionInput();
+          return description ?? "";
+        },
+        resolveFromArgs: async ({ args }) => {
+          if (typeof args.description === "string") {
+            return args.description;
+          }
+          return "";
+        },
+      });
+    }),
+  execute: async (context, inputs) => {
+    const workspaceFolder = fs.getWorkspaceFolder();
+    const commandsFolderUri = await fs.getCommandsFolderUri(workspaceFolder);
     const newFileUri = vscode.Uri.joinPath(
       commandsFolderUri,
-      `${newCommandName}.ts`
+      `${inputs.newCommandName}.ts`
     );
 
-    try {
-      await vscode.workspace.fs.stat(newFileUri);
-      return mcp.returnMcpError(
-        `File for command '${newCommandName}' already exists`
-      );
-    } catch {}
+    await fs.checkFileExists(newFileUri);
 
-    let commandNames: string[] = [];
-    let commandFuncBody = "";
-    let additionalImports = "";
+    const commandFuncBody = "// TODO: implement command logic";
+    const additionalImports = "";
 
     const indentedBody = commandFuncBody
       .split("\n")
-      .map((line) => (line ? `  ${line}` : line))
+      .map((line) => (line ? `    ${line}` : line))
       .join("\n");
 
     const template = ixdarCommandTemplate(
       additionalImports,
-      newCommandName,
-      newCommandDescription,
+      inputs.newCommandName,
+      inputs.description,
       indentedBody
     );
 
-    await vscode.workspace.fs.createDirectory(commandsFolderUri);
-    await vscode.workspace.fs.writeFile(
-      newFileUri,
-      Buffer.from(template, "utf8")
-    );
+    await fs.createFile(newFileUri, template);
 
-    return mcp.returnMcpSuccess(
-      `Command ${newCommandName} created successfully`
+    if (context.collectFile) {
+      await context.collectFile(
+        newFileUri.fsPath,
+        `Created command ${inputs.newCommandName}`
+      );
+    }
+
+    return {
+      filePath: newFileUri.fsPath,
+      commandName: inputs.newCommandName,
+      description: inputs.description,
+    };
+  },
+  cleanup: async (context, _inputs, result, error) => {
+    if (error || !result) {
+      return;
+    }
+
+    context.addMessage(
+      `Command ${result.commandName} created at ${result.filePath}.`
     );
-  } catch (error: any) {
-    return mcp.returnMcpError(error.message);
-  }
+  },
 };
 
 const description =
   "Create a new command template file in the commands folder with optional AI-generated code.";
-const inputSchema = {
-  type: "object",
-  properties: {
-    newCommandName: {
-      type: "string",
-      description: "The name of the new command to create",
-    },
-    description: {
-      type: "string",
-      description:
-        "Description of what the command should do (required for AI-generated commands)",
-    },
-    commandNames: {
-      type: "string",
-      description:
-        "Comma-separated list of command names to orchestrate (required for high-level commands)",
-    },
-  },
-  required: ["newCommandName"],
-};
 
-const command: commandModule.CommandModule = new commandModule.CommandModuleImpl(
+const command: commandModule.CommandModule = new commandModule.CommandModuleImpl<
+  InputValues,
+  CommandResult
+>({
   repoName,
   commandName,
   languages,
-  commandFunc,
   description,
-  inputSchema,
-  mcpFunc
-);
+  pipeline,
+});
 
 @commandRegistry.RegisterCommand
 class CommandExport {
