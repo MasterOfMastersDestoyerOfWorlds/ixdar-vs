@@ -18,35 +18,35 @@
   "activationEvents": [
     "onStartupFinished"
   ],
-  "main": "./out/extension.js",
+  "main": "./build/out/extension.js",
   "exports": {
     ".": {
-      "require": "./lib/index.js",
-      "types": "./lib/index.d.ts"
+      "require": "./build/lib/index.js",
+      "types": "./build/lib/index.d.ts"
     },
     "./command": {
-      "require": "./lib/types/command.js",
-      "types": "./lib/types/command.d.ts"
+      "require": "./build/lib/types/command.js",
+      "types": "./build/lib/types/command.d.ts"
     },
     "./commandRegistry": {
-      "require": "./lib/utils/commandRegistry.js",
-      "types": "./lib/utils/commandRegistry.d.ts"
+      "require": "./build/lib/utils/commandRegistry.js",
+      "types": "./build/lib/utils/commandRegistry.d.ts"
     },
     "./mcp": {
-      "require": "./lib/utils/mcp.js",
-      "types": "./lib/utils/mcp.d.ts"
+      "require": "./build/lib/utils/mcp.js",
+      "types": "./build/lib/utils/mcp.d.ts"
     },
     "./strings": {
-      "require": "./lib/utils/strings.js",
-      "types": "./lib/utils/strings.d.ts"
+      "require": "./build/lib/utils/strings.js",
+      "types": "./build/lib/utils/strings.d.ts"
     },
     "./availability": {
-      "require": "./lib/utils/availability.js",
-      "types": "./lib/utils/availability.d.ts"
+      "require": "./build/lib/utils/availability.js",
+      "types": "./build/lib/utils/availability.d.ts"
     },
     "./fs": {
-      "require": "./lib/utils/fs.js",
-      "types": "./lib/utils/fs.d.ts"
+      "require": "./build/lib/utils/fs.js",
+      "types": "./build/lib/utils/fs.d.ts"
     }
   },
   "contributes": {
@@ -169,7 +169,7 @@
   },
   "scripts": {
     "vscode:prepublish": "npm run package",
-    "build:lib": "tsc && tsc-alias && copyfiles package.json README.md LICENSE.MD ./lib",
+    "build:lib": "tsc && tsc-alias && copyfiles package.json README.md LICENSE.MD ./build/lib",
     "build:webpack": "webpack --mode production",
     "compile": "npm run build:lib && webpack --mode none",
     "build": "npm run build:lib && npm run build:webpack",

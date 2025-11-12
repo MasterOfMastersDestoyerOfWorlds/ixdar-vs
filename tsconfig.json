@@ -3,7 +3,7 @@
     "module": "commonjs",
     "moduleResolution": "node",
     "target": "ES2022",
-    "outDir": "lib",
+    "outDir": "build/lib",
     "lib": ["ES2022"],
     "types": ["vscode", "node", "jest"],
     "sourceMap": true,

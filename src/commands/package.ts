@@ -85,7 +85,7 @@ const pipeline: commandModule.CommandPipeline<InputValues, CommandResult> = {
       terminal.sendText(
         `npx @vscode/vsce package -i .vscode/${importer.EXTENSION_NAME}-${newVersion}.vsix`
       );
-      terminal.sendText("npm publish ./lib --access public");
+      terminal.sendText("npm publish ./build/lib --access public");
 
       context.addMessage("Package created successfully.");
 

@@ -75,11 +75,11 @@ At activation, ixdar-vs:
 ### 4. Dual-Build Architecture
 
 **For VS Code Extension:**
-- Webpack bundles everything into `out/extension.js`
-- VS Code loads this single file via `"main": "./out/extension.js"`
+- Webpack bundles everything into `build/out/extension.js`
+- VS Code loads this single file via `"main": "./build/out/extension.js"`
 
 **For Library Consumers:**
-- TypeScript compiler outputs individual modules to `lib/`
+- TypeScript compiler outputs individual modules to `build/lib/`
 - Package exports enable subpath imports: `ixdar-vs/command`, `ixdar-vs/mcp`, etc.
 - Child workspaces can `require('ixdar-vs/...')` and get the actual compiled modules
 

@@ -301,11 +301,9 @@ export function commandInput(options?: {
         return targetCommand;
       }
 
-      const vscodeCommands = await vscode.commands.getCommands(true);
-      if (!vscodeCommands.includes(targetCommandName)) {
-        throw new Error(`Command not found: ${targetCommandName}`);
-      }
-      return targetCommandName;
+      throw new Error(
+        `Command '${targetCommandName}' not found in MCP registry. Only MCP commands are supported.`
+      );
     },
   };
 }

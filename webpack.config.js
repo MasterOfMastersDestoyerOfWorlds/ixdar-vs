@@ -6,19 +6,19 @@ const SRC_DIR = path.resolve(__dirname, "src");
 
 /**@type {import('webpack').Configuration}*/
 const config = {
-  target: "node", 
-  mode: "none", 
+  target: "node",
+  mode: "none",
 
-  entry: "./src/extension.ts", 
+  entry: "./src/extension.ts",
   output: {
-    path: path.resolve(__dirname, "out"),
+    path: path.resolve(__dirname, "build", "out"),
     filename: "extension.js",
     libraryTarget: "commonjs2",
     devtoolModuleFilenameTemplate: "../[resource-path]",
   },
   devtool: "source-map",
   externals: {
-    vscode: "commonjs vscode", 
+    vscode: "commonjs vscode",
     "tree-sitter": "commonjs tree-sitter",
     "tree-sitter-javascript": "commonjs tree-sitter-javascript",
     "tree-sitter-java": "commonjs tree-sitter-java",
@@ -55,12 +55,25 @@ const config = {
             loader: "ts-loader",
             options: {
               compilerOptions: {
-                module: "esnext", 
+                module: "esnext",
               },
             },
           },
           {
-            loader: path.resolve(__dirname, "src", "webpack", "modulePathLoader.js"),
+            loader: path.resolve(
+              __dirname,
+              "src",
+              "webpack",
+              "debugOutputLoader.js"
+            ),
+          },
+          {
+            loader: path.resolve(
+              __dirname,
+              "src",
+              "webpack",
+              "modulePathLoader.js"
+            ),
           },
         ],
       },
