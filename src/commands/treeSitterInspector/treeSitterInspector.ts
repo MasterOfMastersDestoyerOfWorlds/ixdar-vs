@@ -219,7 +219,6 @@ interface CommandResult {
 }
 
 const pipeline: commandModule.CommandPipeline<InputValues, CommandResult> = {
-  input: () => CommandInputPlan.createInputPlan<InputValues>(() => {}),
   execute: async (context) => {
     const opened = await runTreeSitterInspector(context);
     return { opened };

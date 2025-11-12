@@ -78,97 +78,10 @@ interface CommandResult {
 const pipeline: commandModule.CommandPipeline<InputValues, CommandResult> = {
   input: () =>
     CommandInputPlan.createInputPlan<InputValues>((builder) => {
-      builder.step({
-        key: "sourceFilePath",
-        schema: {
-          type: "string",
-          description:
-            "Path to the file used to create the template (required for MCP).",
-        },
-        required: false,
-        prompt: async () => {
-          const editor = inputs.getActiveEditor();
-          return editor.document.fileName;
-        },
-        resolveFromArgs: async ({ args }) => {
-          if (typeof args.fileToTemplate !== "string") {
-            throw new Error("Property 'fileToTemplate' is required.");
-          }
-          return args.fileToTemplate;
-        },
-      });
-
-      builder.step({
-        key: "templateContent",
-        schema: {
-          type: "string",
-          description: "Content to convert into a template.",
-        },
-        prompt: async () => {
-          const editor = inputs.getActiveEditor();
-          return editor.document.getText();
-        },
-        resolveFromArgs: async ({ args }, currentValues) => {
-          const filePath =
-            typeof args.fileToTemplate === "string"
-              ? args.fileToTemplate
-              : currentValues.sourceFilePath;
-          if (!filePath || typeof filePath !== "string") {
-            throw new Error("Property 'fileToTemplate' is required.");
-          }
-          const fileUri = vscode.Uri.file(filePath);
-          const content = await vscode.workspace.fs.readFile(fileUri);
-          return Buffer.from(content).toString("utf8");
-        },
-      });
-
-      builder.step({
-        key: "targets",
-        schema: {
-          type: "array",
-          description:
-            "Target variable names to replace (comma-separated string or array).",
-        },
-        prompt: async () => inputs.getReplacementTargets(),
-        resolveFromArgs: async ({ args }) => {
-          const replaceTargets = args.replaceTargets;
-          if (Array.isArray(replaceTargets)) {
-            return replaceTargets.map(String);
-          }
-          if (typeof replaceTargets === "string") {
-            return replaceTargets
-              .split(",")
-              .map((target: string) => target.trim())
-              .filter((target: string) => target.length > 0);
-          }
-          throw new Error(
-            "Property 'replaceTargets' must be a string or array of strings."
-          );
-        },
-      });
-
-      builder.step({
-        key: "outputFileName",
-        schema: {
-          type: "string",
-          description: "File name for the generated template.",
-        },
-        prompt: async (_context, currentValues) => {
-          const editor = inputs.getActiveEditor();
-          return inputs.getFileNameInput(editor.document.fileName);
-        },
-        resolveFromArgs: async ({ args }, currentValues) => {
-          if (typeof args.outputFileName === "string") {
-            return args.outputFileName;
-          }
-          const sourcePath = currentValues.sourceFilePath;
-          if (typeof sourcePath === "string") {
-            const baseName = path.basename(sourcePath, path.extname(sourcePath));
-            return `${strings.toCamelCase(baseName)}.ts`;
-          }
-          return "template.ts";
-        },
-      });
+      builder.step(inputs.currentFileInput());
+      builder.step(inputs.activeEditorContentInput());
+      builder.step(inputs.replacementTargetsInput());
+      builder.step(inputs.templateFileNameInput<InputValues>());
     }),
   execute: async (context, inputs) => {
     const templateFile = await makeTemplateFromFile(
@@ -204,16 +117,14 @@ const pipeline: commandModule.CommandPipeline<InputValues, CommandResult> = {
 const description =
   "Make a template function from a file by replacing target variables with case-specific template literals.";
 
-const command: commandModule.CommandModule = new commandModule.CommandModuleImpl<
-  InputValues,
-  CommandResult
->({
-  repoName,
-  commandName,
-  languages,
-  description,
-  pipeline,
-});
+const command: commandModule.CommandModule =
+  new commandModule.CommandModuleImpl<InputValues, CommandResult>({
+    repoName,
+    commandName,
+    languages,
+    description,
+    pipeline,
+  });
 
 @commandRegistry.RegisterCommand
 class CommandExport {

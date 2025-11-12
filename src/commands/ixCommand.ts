@@ -26,45 +26,9 @@ interface CommandResult {
 const pipeline: commandModule.CommandPipeline<InputValues, CommandResult> = {
   input: () =>
     CommandInputPlan.createInputPlan<InputValues>((builder) => {
-      builder.step({
-        key: "command",
-        schema: {
-          type: "string",
-          description:
-            "The name or ID of the command to execute (e.g., 'newIxdarCommand' or 'ixdar-vs.newIxdarCommand')",
-        },
-        prompt: async () => {
-          const items = commandRegistry.getMcpCommandQuickPickItems();
-          const selected = await userInputs.selectCommandQuickPickItem(items);
-          return selected.commandModule;
-        },
-        resolveFromArgs: async ({ args }) => {
-          const commandNameArg = args.commandName;
-          if (typeof commandNameArg !== "string" || commandNameArg.length === 0) {
-            throw new Error("Property 'commandName' is required.");
-          }
-          return commandRegistry.findCommandById(commandNameArg);
-        },
-      });
+      builder.step(userInputs.commandInput());
 
-      builder.step({
-        key: "args",
-        schema: {
-          type: "object",
-          description:
-            "Optional arguments to pass to the command being executed (MCP only).",
-        },
-        required: false,
-        defaultValue: {},
-        prompt: async () => ({}),
-        resolveFromArgs: async ({ args }) => {
-          const provided = args.args;
-          if (provided && typeof provided === "object") {
-            return provided as Record<string, unknown>;
-          }
-          return {};
-        },
-      });
+      builder.step(userInputs.commandArgsInput());
     }),
   execute: async (context, inputs) => {
     if (context.mode === "vscode") {

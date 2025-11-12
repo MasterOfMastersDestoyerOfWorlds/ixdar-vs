@@ -81,7 +81,7 @@ const pipeline: commandModule.CommandPipeline<InputValues, CommandResult> = {
 
           return regexString;
         },
-        resolveFromArgs: async ({ args }) => {
+        resolveFromArgs: async ({ args }: commandModule.McpInputContext) => {
           const regex =
             (typeof args.regex === "string" && args.regex) ||
             (typeof args.pattern === "string" && args.pattern);

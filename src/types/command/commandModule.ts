@@ -89,7 +89,7 @@ export type CommandCleanupFunc<TInputs extends Record<string, any>, TResult> = (
 ) => Promise<void>;
 
 export interface CommandPipeline<TInputs extends Record<string, any>, TResult> {
-  input: CommandInputFunc<TInputs>;
+  input?: CommandInputFunc<TInputs>;
   execute: CommandExecuteFunc<TInputs, TResult>;
   cleanup?: CommandCleanupFunc<TInputs, TResult>;
 }
@@ -147,7 +147,7 @@ export class CommandModuleImpl<TInputs extends Record<string, any>, TResult>
     call: (args: any) => Promise<McpResult> | undefined;
   };
   runtimeContext: CommandRuntimeContext;
-  plan: CommandInputPlan<TInputs>;
+  plan?: CommandInputPlan<TInputs>;
 
   constructor(options: CommandModuleOptions<TInputs, TResult>) {
     this.runtimeContext = new VscodeRuntimeContext(this);
@@ -161,7 +161,7 @@ export class CommandModuleImpl<TInputs extends Record<string, any>, TResult>
     };
 
     const vscodeId = importer.extensionCommandName(options.commandName);
-    this.plan = this.pipeline.input();
+    this.plan = this.pipeline.input?.();
     this.vscodeCommand = {
       id: vscodeId,
       register: (context: vscode.ExtensionContext) => {

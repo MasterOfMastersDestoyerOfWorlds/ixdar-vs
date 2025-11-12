@@ -57,12 +57,12 @@ export class VscodeRuntimeContext<TInputs extends Record<string, any>> implement
     return mcp.returnMcpSuccess("Command executed successfully");
   }
   private async resolveInputs(
-    plan: CommandInputPlan<TInputs>
+    plan?: CommandInputPlan<TInputs>
   ): Promise<TInputs> {
     const context: CommandInputContext = { mode: "vscode" };
     const values: Partial<TInputs> = {};
 
-    for (const step of plan.allSteps) {
+    for (const step of plan?.allSteps ?? []) {
       const value = await step.prompt(context, values);
       (values as Record<string, unknown>)[step.key] = value as unknown;
     }

@@ -8,7 +8,9 @@ import {
 import { CommandInputPlan } from "./CommandInputPlan";
 import { formatUnknownError, safeStringify } from "@/utils/templating/strings";
 
-export class McpRuntimeContext <TInputs extends Record<string, any>> implements CommandRuntimeContext {
+export class McpRuntimeContext<TInputs extends Record<string, any>>
+  implements CommandRuntimeContext
+{
   public readonly mode: CommandMode = "mcp";
   public readonly args: Record<string, unknown>;
   private readonly commandModule: CommandModuleImpl<TInputs, any>;
@@ -22,7 +24,10 @@ export class McpRuntimeContext <TInputs extends Record<string, any>> implements 
   private errors: string[] = [];
   private files: Array<{ path: string; label?: string }> = [];
 
-  constructor(commandModule: CommandModuleImpl<TInputs, any>, args: Record<string, unknown>) {
+  constructor(
+    commandModule: CommandModuleImpl<TInputs, any>,
+    args: Record<string, unknown>
+  ) {
     this.commandModule = commandModule;
     this.args = args ?? {};
   }
@@ -81,7 +86,7 @@ export class McpRuntimeContext <TInputs extends Record<string, any>> implements 
 
   public async execute(args: Record<string, unknown>): Promise<McpResult> {
     try {
-      const inputs = await this.resolveInputs(this.commandModule.plan, this);
+      const inputs = await this.resolveInputs(this, this.commandModule.plan);
       const result = await this.commandModule.runPipeline(this, inputs);
       return this.toResult(result);
     } catch (error) {
@@ -91,12 +96,12 @@ export class McpRuntimeContext <TInputs extends Record<string, any>> implements 
   }
 
   private async resolveInputs(
-    plan: CommandInputPlan<TInputs>,
-    context: McpRuntimeContext<TInputs>
+    context: McpRuntimeContext<TInputs>,
+    plan?: CommandInputPlan<TInputs>
   ): Promise<TInputs> {
     const values: Partial<TInputs> = {};
 
-    for (const step of plan.allSteps) {
+    for (const step of plan?.allSteps ?? []) {
       let value: unknown;
 
       if (step.resolveFromArgs) {

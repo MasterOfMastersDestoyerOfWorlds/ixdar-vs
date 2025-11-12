@@ -5,6 +5,7 @@ import Java from "tree-sitter-java";
 import Python from "tree-sitter-python";
 import CSharp from "tree-sitter-c-sharp";
 import { MethodInfo } from "@/types/parser";
+import { getMethod } from "@/utils/vscode/userInputs";
 
 /**
  * Use this module for all multi-word string manipulation and structural 
@@ -360,4 +361,14 @@ export function findLCA(
     current = current.parent;
   }
   return tree.rootNode;
+}
+
+
+export async function selectMethodFromDocument(
+  document: vscode.TextDocument
+): Promise<MethodInfo> {
+  const tree = getParseTree(document);
+  const language = getLanguage(document.languageId);
+  const methods = extractMethods(tree, document, language);
+  return getMethod(methods);
 }

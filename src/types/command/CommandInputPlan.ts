@@ -4,6 +4,7 @@ import {
   McpInputContext,
   InputSchema,
 } from "@/types/command/commandModule";
+import type { InputStepFactory } from "@/utils/vscode/userInputs";
 
 /**
  * Step configuration for building an input plan.
@@ -64,7 +65,7 @@ export class CommandInputBuilder<TInputs extends Record<string, any>> {
   private readonly steps: CommandInputStep<TInputs>[] = [];
 
   step<K extends keyof TInputs>(
-    config: CommandInputStepConfig<TInputs, K>
+    config: CommandInputStepConfig<TInputs, K> | InputStepFactory<TInputs[K]>
   ): CommandInputBuilder<TInputs> {
     if (this.steps.some((step) => step.key === config.key)) {
       throw new Error(`Input plan already defines key '${config.key}'.`);
@@ -73,7 +74,7 @@ export class CommandInputBuilder<TInputs extends Record<string, any>> {
     this.steps.push({
       ...config,
       required: config.required ?? true,
-    });
+    } as CommandInputStep<TInputs>);
     return this;
   }
 

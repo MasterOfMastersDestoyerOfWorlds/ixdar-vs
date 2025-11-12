@@ -78,42 +78,8 @@ interface CommandResult {
 const pipeline: commandModule.CommandPipeline<InputValues, CommandResult> = {
   input: () =>
     CommandInputPlan.createInputPlan<InputValues>((builder) => {
-      builder.step({
-        key: "newCommandName",
-        schema: {
-          type: "string",
-          description: "The name of the new command to create.",
-        },
-        prompt: async () => inputs.getCommandNameInput(),
-        resolveFromArgs: async ({ args }) => {
-          const value = args.newCommandName;
-          if (typeof value !== "string" || value.length === 0) {
-            throw new Error("Property 'newCommandName' is required.");
-          }
-          return value;
-        },
-      });
-
-      builder.step({
-        key: "description",
-        schema: {
-          type: "string",
-          description:
-            "Description of what the command should do (optional for MCP).",
-        },
-        required: false,
-        defaultValue: "",
-        prompt: async () => {
-          const description = await inputs.getCommandDescriptionInput();
-          return description ?? "";
-        },
-        resolveFromArgs: async ({ args }) => {
-          if (typeof args.description === "string") {
-            return args.description;
-          }
-          return "";
-        },
-      });
+      builder.step(inputs.commandNameInput());
+      builder.step(inputs.commandDescriptionInput({ required: false }));
     }),
   execute: async (context, inputs) => {
     const workspaceFolder = fs.getWorkspaceFolder();

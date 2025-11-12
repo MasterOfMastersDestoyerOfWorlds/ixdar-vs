@@ -15,7 +15,7 @@ const repoName = undefined;
 
 interface InputValues {
   folderUri: vscode.Uri;
-  commandId: string;
+  command: commandModule.CommandModule;
 }
 
 interface CommandResult {
@@ -29,74 +29,9 @@ interface CommandResult {
 const pipeline: commandModule.CommandPipeline<InputValues, CommandResult> = {
   input: () =>
     CommandInputPlan.createInputPlan<InputValues>((builder) => {
-      builder.step({
-        key: "folderUri",
-        schema: {
-          type: "string",
-          description: "Absolute path to the folder to process",
-        },
-        prompt: async () => {
-          const folderSelection = await userInputs.selectFolder();
-
-          return folderSelection[0];
-        },
-        resolveFromArgs: async ({ args }) => {
-          const folderPath = args.folderPath;
-          if (typeof folderPath !== "string" || folderPath.length === 0) {
-            throw new Error("Property 'folderPath' is required.");
-          }
-          const folderUri = vscode.Uri.file(folderPath);
-          try {
-            await vscode.workspace.fs.stat(folderUri);
-          } catch {
-            throw new Error(`Folder not found: ${folderPath}`);
-          }
-          return folderUri;
-        },
-      });
-
-      builder.step({
-        key: "commandId",
-        schema: {
-          type: "string",
-          description:
-            "Name or ID of the command to execute on each file (e.g. 'removeAllComments' or 'editor.action.formatDocument')",
-        },
-        prompt: async () => {
-          const allCommands =
-            await commandRegistry.getAllCommandQuickPickItems();
-          const selected = await userInputs.selectCommandQuickPickItem(allCommands);
-          return selected.commandModule.vscodeCommand.id;
-        },
-        resolveFromArgs: async ({ args }) => {
-          const targetCommandName =
-            (typeof args.commandName === "string" && args.commandName) ||
-            (typeof args.commandId === "string" && args.commandId);
-          if (!targetCommandName) {
-            throw new Error("Property 'commandName' is required.");
-          }
-
-          const registry = commandRegistry.CommandRegistry.getInstance();
-          const allCommands = registry.getAllMcpCommands();
-
-          const targetCommand = allCommands.find(
-            (cmd) =>
-              cmd.vscodeCommand.id === targetCommandName ||
-              cmd.vscodeCommand.id.endsWith(`.${targetCommandName}`) ||
-              cmd.name === targetCommandName
-          );
-
-          if (targetCommand) {
-            return targetCommand.vscodeCommand.id;
-          }
-
-          const vscodeCommands = await vscode.commands.getCommands(true);
-          if (!vscodeCommands.includes(targetCommandName)) {
-            throw new Error(`Command not found: ${targetCommandName}`);
-          }
-          return targetCommandName;
-        },
-      });
+      builder.step(userInputs.folderInput());
+      builder.step(
+        userInputs.commandInput());
     }),
   execute: async (_context, inputs) => {
     const files = await fs.getAllFiles(inputs.folderUri);
@@ -119,7 +54,7 @@ const pipeline: commandModule.CommandPipeline<InputValues, CommandResult> = {
     await vscode.window.withProgress(
       {
         location: vscode.ProgressLocation.Notification,
-        title: `Executing ${inputs.commandId}`,
+        title: `Executing ${inputs.command}`,
         cancellable: true,
       },
       async (progress, token) => {
@@ -144,7 +79,7 @@ const pipeline: commandModule.CommandPipeline<InputValues, CommandResult> = {
               preserveFocus: true,
             });
 
-            await vscode.commands.executeCommand(inputs.commandId);
+            await commandRegistry.executeCommand(inputs.command);
 
             if (document.isDirty) {
               await document.save();
