@@ -8,9 +8,8 @@ import {
 } from "@/types/command/commandModule";
 
 /**
- * listUtilFunctions: List all util functions in the registry and output them to a temporary file
+ *  @ix-description listUtilFunctions: List all util functions in the registry and output them to a temporary file
  */
-const commandName = "listUtilFunctions";
 const languages = undefined;
 const repoName = undefined;
 
@@ -27,7 +26,7 @@ const pipeline: CommandPipeline = {
     }
 
     const timestamp = report.generatedAt.toISOString().replace(/[:.]/g, "-");
-    const baseName = commandName
+    const baseName = __ix_module.commandName
       .replace(/([a-z0-9])([A-Z])/g, "$1-$2")
       .toLowerCase();
     const targetFileName = `${baseName}-${timestamp}.txt`;
@@ -62,15 +61,11 @@ const pipeline: CommandPipeline = {
   },
 };
 
-const description =
-  "List all util functions in the registry and output them to a temporary file";
-
 const command: commandModule.CommandModule =
   new commandModule.CommandModuleImpl({
     repoName,
-    commandName,
+    ixModule: __ix_module,
     languages,
-    description,
     pipeline,
   });
 

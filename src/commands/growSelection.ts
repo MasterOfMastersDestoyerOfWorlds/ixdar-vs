@@ -6,9 +6,8 @@ import * as inputs from "@/utils/vscode/userInputs";
 import { CommandPipeline } from "@/types/command/commandModule";
 
 /**
- * growSelection: Grows the current selection to the containing tree-sitter node
+ *  @ix-description growSelection: Grows the current selection to the containing tree-sitter node
  */
-const commandName = "growSelection";
 const languages = undefined;
 const repoName = undefined;
 
@@ -65,15 +64,11 @@ const pipeline: CommandPipeline = {
   }
 };
 
-const description =
-  "Grows the current selection to the containing tree-sitter node";
-
 const command: commandModule.CommandModule =
   new commandModule.CommandModuleImpl({
     repoName,
-    commandName,
+    ixModule: __ix_module,
     languages,
-    description,
     pipeline,
   });
 

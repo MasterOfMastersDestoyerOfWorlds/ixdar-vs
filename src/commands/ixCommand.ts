@@ -5,10 +5,9 @@ import * as userInputs from "@/utils/vscode/userInputs";
 import { CommandPipeline } from "@/types/command/commandModule";
 
 /**
- * ixCommand: In-memory command runner that allows executing any registered command
+ *  @ix-description ixCommand: In-memory command runner that allows executing any registered command
  * via a quick pick interface (VS Code) or by name (MCP).
  */
-const commandName = "ixCommand";
 const languages = undefined;
 const repoName = undefined;
 
@@ -57,15 +56,11 @@ const pipeline: CommandPipeline = {
   },
 };
 
-const description =
-  "Run any registered command from the command registry. Use quick pick in VS Code or specify command name via MCP.";
-
 const command: commandModule.CommandModule =
   new commandModule.CommandModuleImpl({
     repoName,
-    commandName,
+    ixModule: __ix_module,
     languages,
-    description,
     pipeline,
   });
 

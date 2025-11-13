@@ -5,10 +5,15 @@ import * as CommandInputPlan from "@/types/command/CommandInputPlan";
 import * as commandRegistry from "@/utils/command/commandRegistry";
 import * as fs from "@/utils/vscode/fs";
 import * as userInputs from "@/utils/vscode/userInputs";
+import {
+  CommandPipeline,
+} from "@/types/command/commandModule";
+
 
 /**
- * callOverFolder: Call any ix command or vscode command over all files and sub folders of a given folder
+ *  @ix-description callOverFolder: Call any ix command or vscode command over all files and sub folders of a given folder
  */
+
 const commandName = "callOverFolder";
 const languages = undefined;
 const repoName = undefined;
@@ -21,15 +26,15 @@ interface CommandResult {
   cancelled: boolean;
 }
 
-const pipeline = {
+const pipeline: CommandPipeline = {
   input: () =>
     CommandInputPlan.createInputPlan()
       .step(userInputs.folderInput())
       .step(userInputs.commandInput())
       .build(),
   execute: async (
-    _context: commandModule.CommandRuntimeContext,
-    inputs: { folderUri: vscode.Uri; commandId: commandModule.CommandModule }
+    _context,
+    inputs
   ) => {
     const files = await fs.getAllFiles(inputs.folderUri);
 
@@ -100,10 +105,10 @@ const pipeline = {
     };
   },
   cleanup: async (
-    context: commandModule.CommandRuntimeContext,
-    _inputs: { folderUri: vscode.Uri; commandId: commandModule.CommandModule },
-    result: CommandResult | undefined,
-    error?: unknown
+    context,
+    _inputs,
+    result,
+    error
   ) => {
     if (error || !result) {
       return;
@@ -130,14 +135,10 @@ const pipeline = {
   },
 };
 
-const description =
-  "Call any ix command or vscode command over all files and sub folders of a given folder";
-
 const command: commandModule.CommandModule = new commandModule.CommandModuleImpl({
   repoName,
-  commandName,
+  ixModule: __ix_module,
   languages,
-  description,
   pipeline,
 });
 

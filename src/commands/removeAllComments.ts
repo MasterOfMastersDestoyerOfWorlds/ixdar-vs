@@ -1,15 +1,14 @@
 import * as vscode from "vscode";
 import * as commandModule from "@/types/command/commandModule";
-import * as CommandInputPlan from "@/types/command/CommandInputPlan";
 import * as parser from "@/utils/templating/parser";
 import Parser from "tree-sitter";
 import * as commandRegistry from "@/utils/command/commandRegistry";
 import * as inputs from "@/utils/vscode/userInputs";
+import { CommandPipeline } from "@/types/command/commandModule";
 
 /**
- * removeAllComments: Remove all single-line comments from the current file using tree-sitter AST parsing.
+ *  @ix-description removeAllComments: Remove all single-line comments from the current file using tree-sitter AST parsing.
  */
-const commandName = "removeAllComments";
 const languages = [
   "javascript",
   "typescript",
@@ -38,7 +37,10 @@ async function removeSingleLineComments(
   const matches = query.matches(tree.rootNode);
 
   const nodesToRemove = matches
-    .map((match: { captures: { node: Parser.SyntaxNode }[] }) => match.captures[0].node)
+    .map(
+      (match: { captures: { node: Parser.SyntaxNode }[] }) =>
+        match.captures[0].node
+    )
     .filter(
       (node) =>
         node.type === lineCommentKeyword && node.text.startsWith(commentSymbol)
@@ -78,7 +80,7 @@ interface CommandResult {
   removedComments: number;
 }
 
-const pipeline = {
+const pipeline: CommandPipeline = {
   execute: async () => {
     const editor = inputs.getActiveEditor();
     const removed = await removeSingleLineComments(editor);
@@ -86,12 +88,7 @@ const pipeline = {
       removedComments: removed,
     };
   },
-  cleanup: async (
-    context: commandModule.CommandRuntimeContext,
-    _inputs: Record<string, never>,
-    result: CommandResult | undefined,
-    _error?: unknown
-  ) => {
+  cleanup: async (context, _inputs, result, _error) => {
     if (!result) {
       return;
     }
@@ -107,16 +104,13 @@ const pipeline = {
   },
 };
 
-const description =
-  "Remove all single-line comments from the current file (// or # based on language). Does not remove block comments.";
-
-const command: commandModule.CommandModule = new commandModule.CommandModuleImpl({
-  repoName,
-  commandName,
-  languages,
-  description,
-  pipeline,
-});
+const command: commandModule.CommandModule =
+  new commandModule.CommandModuleImpl({
+    repoName,
+    ixModule: __ix_module,
+    languages,
+    pipeline,
+  });
 
 @commandRegistry.RegisterCommand
 class CommandExport {

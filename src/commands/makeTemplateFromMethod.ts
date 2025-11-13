@@ -1,4 +1,3 @@
-
 import * as vscode from "vscode";
 import * as path from "path";
 import * as commandModule from "@/types/command/commandModule";
@@ -10,37 +9,22 @@ import * as parser from "@/utils/templating/parser";
 import * as fs from "@/utils/vscode/fs";
 import { MethodInfo } from "@/types/parser";
 import * as inputs from "@/utils/vscode/userInputs";
+import { CommandPipeline } from "@/types/command/commandModule";
 
 /**
- * makeTemplateFromMethod: Lists all of the methods or functions in a file and allows you to make a template out of one of them
+ *  @ix-description makeTemplateFromMethod: Lists all of the methods or functions in a file and allows you to make a template out of one of them
  */
-const commandName = "makeTemplateFromMethod";
 const languages = undefined;
 const repoName = undefined;
 
-
-interface CommandResult {
-  filePath: string;
-  methodName: string;
-  targets: string[];
-  outputFileName: string;
-}
-
-const pipeline = {
+const pipeline: CommandPipeline = {
   input: () =>
     CommandInputPlan.createInputPlan()
       .step(inputs.selectMethodInFile())
       .step(inputs.replacementTargetsInput())
       .step(inputs.templateFileNameInput())
       .build(),
-  execute: async (
-    context: commandModule.CommandRuntimeContext,
-    inputs: {
-      method: MethodInfo;
-      targets: string[];
-      outputFileName: string;
-    }
-  ) => {
+  execute: async (context, inputs) => {
     const templateFile = await makeTemplateFromMethod(
       inputs.method,
       inputs.targets,
@@ -61,16 +45,7 @@ const pipeline = {
       outputFileName: inputs.outputFileName,
     };
   },
-  cleanup: async (
-    context: commandModule.CommandRuntimeContext,
-    _inputs: {
-      method: MethodInfo;
-      targets: string[];
-      outputFileName: string;
-    },
-    result: CommandResult | undefined,
-    error?: unknown
-  ) => {
+  cleanup: async (context, _inputs, result, error) => {
     if (error || !result) {
       return;
     }
@@ -81,16 +56,13 @@ const pipeline = {
   },
 };
 
-const description =
-  "Lists all of the methods or functions in a file and allows you to make a template out of one of them";
-
-const command: commandModule.CommandModule = new commandModule.CommandModuleImpl({
-  repoName,
-  commandName,
-  languages,
-  description,
-  pipeline,
-});
+const command: commandModule.CommandModule =
+  new commandModule.CommandModuleImpl({
+    repoName,
+    ixModule: __ix_module,
+    languages,
+    pipeline,
+  });
 
 @commandRegistry.RegisterCommand
 class CommandExport {
@@ -103,8 +75,11 @@ export default command;
  * Extract all methods/functions from the parse tree
  */
 
-
-export const makeTemplateFromMethod = async (method: MethodInfo, targets: string[], fileNameInput: string) => {
+export const makeTemplateFromMethod = async (
+  method: MethodInfo,
+  targets: string[],
+  fileNameInput: string
+) => {
   let content = method.text;
   for (let i = 0; i < targets.length; i++) {
     const target = targets[i];
@@ -125,7 +100,10 @@ export const makeTemplateFromMethod = async (method: MethodInfo, targets: string
       if (functionName) {
         const replacement = `\${${importer.getCallSign(strings)}(${functionName}(arg${targetIndex})}`;
 
-        const regex = new RegExp(`\\b${strings.escapeRegex(variation)}\\b`, "g");
+        const regex = new RegExp(
+          `\\b${strings.escapeRegex(variation)}\\b`,
+          "g"
+        );
         content = content.replace(regex, replacement);
       }
     }
@@ -146,4 +124,3 @@ export function makeTemplate(${argsList}: string) {
 
   return templateFile;
 };
-

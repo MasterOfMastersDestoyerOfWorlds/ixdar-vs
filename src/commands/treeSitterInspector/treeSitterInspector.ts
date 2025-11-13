@@ -8,9 +8,8 @@ import type Parser from "tree-sitter";
 import inspectorHtml from "./inspector.html";
 
 /**
- * treeSitterInspector: Create a tree-sitter inspector command with a webview panel that decorates all tokens, shows token info on hover, and has an input box for validating and highlighting tree-sitter queries in real-time.
+ *  @ix-description treeSitterInspector: Create a tree-sitter inspector command with a webview panel that decorates all tokens, shows token info on hover, and has an input box for validating and highlighting tree-sitter queries in real-time.
  */
-const commandName = "treeSitterInspector";
 const languages = undefined;
 const repoName = undefined;
 
@@ -218,7 +217,7 @@ interface CommandResult {
   opened: boolean;
 }
 
-const pipeline: commandModule.CommandPipeline<InputValues, CommandResult> = {
+const pipeline: commandModule.CommandPipeline = {
   execute: async (context) => {
     const opened = await runTreeSitterInspector(context);
     return { opened };
@@ -226,17 +225,13 @@ const pipeline: commandModule.CommandPipeline<InputValues, CommandResult> = {
   cleanup: async () => {},
 };
 
-const description =
-  "Create a tree-sitter inspector command with a webview panel that decorates all tokens, shows token info on hover, and has an input box for validating and highlighting tree-sitter queries in real-time.";
-
 const command: commandModule.CommandModule = new commandModule.CommandModuleImpl<
   InputValues,
   CommandResult
 >({
   repoName,
-  commandName,
+  ixModule: __ix_module,
   languages,
-  description,
   pipeline,
 });
 

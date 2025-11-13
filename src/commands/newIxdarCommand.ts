@@ -5,6 +5,7 @@ import * as commandModule from "@/types/command/commandModule";
 import * as CommandInputPlan from "@/types/command/CommandInputPlan";
 import * as inputs from "@/utils/vscode/userInputs";
 import * as fs from "@/utils/vscode/fs";
+import { CommandPipeline } from "@/types/command/commandModule";
 
 function ixdarCommandTemplate(
   additionalImports: string,
@@ -17,9 +18,8 @@ ${importer.getImportModule("vscode")}
 ${importer.getImportRelative(commandModule, commandRegistry)}
 ${additionalImports}
 /**
- * ${newCommandName}: ${newCommandDescription}
+ * @ix-description ${newCommandName}: ${newCommandDescription}
  */
-const commandName = "${newCommandName}";
 const languages = undefined;
 const repoName = undefined;
 
@@ -42,12 +42,10 @@ ${indentedBody}
   },
 };
 
-const description = "${newCommandDescription.replace(/"/g, '\\"')}";
 const command: ${importer.getModuleName(commandModule)}.CommandModule = new ${importer.getModuleName(commandModule)}.CommandModuleImpl<InputValues, CommandResult>({
   repoName,
-  commandName,
+  ixModule: __ix_module,
   languages,
-  description,
   pipeline,
 });
 
@@ -60,26 +58,20 @@ export default command;
 `;
 }
 
-const commandName = "newIxdarCommand";
+/**
+ *  @ix-description newIxdarCommand: Create a new command template file in the commands folder with optional AI-generated code.
+ */
+
 const languages = undefined;
 const repoName = importer.EXTENSION_NAME;
 
-interface CommandResult {
-  filePath: string;
-  commandName: string;
-  description: string;
-}
-
-const pipeline = {
+const pipeline: CommandPipeline = {
   input: () =>
     CommandInputPlan.createInputPlan()
       .step(inputs.commandNameInput())
       .step(inputs.commandDescriptionInput({ required: false }))
       .build(),
-  execute: async (
-    context: commandModule.CommandRuntimeContext,
-    inputs: { newCommandName: string; description: string }
-  ) => {
+  execute: async (context, inputs) => {
     const workspaceFolder = fs.getWorkspaceFolder();
     const commandsFolderUri = await fs.getCommandsFolderUri(workspaceFolder);
     const newFileUri = vscode.Uri.joinPath(
@@ -119,12 +111,7 @@ const pipeline = {
       description: inputs.description,
     };
   },
-  cleanup: async (
-    context: commandModule.CommandRuntimeContext,
-    _inputs: { newCommandName: string; description: string },
-    result: CommandResult | undefined,
-    error?: unknown
-  ) => {
+  cleanup: async (context, _inputs, result, error) => {
     if (error || !result) {
       return;
     }
@@ -135,16 +122,13 @@ const pipeline = {
   },
 };
 
-const description =
-  "Create a new command template file in the commands folder with optional AI-generated code.";
-
-const command: commandModule.CommandModule = new commandModule.CommandModuleImpl({
-  repoName,
-  commandName,
-  languages,
-  description,
-  pipeline,
-});
+const command: commandModule.CommandModule =
+  new commandModule.CommandModuleImpl({
+    repoName,
+    ixModule: __ix_module,
+    languages,
+    pipeline,
+  });
 
 @commandRegistry.RegisterCommand
 class CommandExport {

@@ -1,18 +1,16 @@
 import * as vscode from "vscode";
 import * as commandModule from "@/types/command/commandModule";
-import * as CommandInputPlan from "@/types/command/CommandInputPlan";
 import * as commandRegistry from "@/utils/command/commandRegistry";
+import { CommandPipeline } from "@/types/command/commandModule";
 
-const commandName = "onZBreakPoint";
+/**
+ *  @ix-description onZBreakPoint: Insert a z_breakpoint snippet at the current cursor position. Creates a conditional block with a breakpoint.
+ */
+
 const languages = ["c", "cpp", "java", "csharp"];
 const repoName = undefined;
 
-interface CommandResult {
-  breakpointAdded: boolean;
-  line?: number;
-}
-
-const pipeline = {
+const pipeline: CommandPipeline = {
   execute: async () => {
     const editor = vscode.window.activeTextEditor;
     if (!editor) {
@@ -37,12 +35,7 @@ const pipeline = {
       line: breakline.lineNumber,
     };
   },
-  cleanup: async (
-    context: commandModule.CommandRuntimeContext,
-    _inputs: Record<string, never>,
-    result: CommandResult | undefined,
-    error?: unknown
-  ) => {
+  cleanup: async (context, _inputs, result, error) => {
     if (error || !result?.breakpointAdded) {
       return;
     }
@@ -51,16 +44,13 @@ const pipeline = {
   },
 };
 
-const description =
-  "Insert a z_breakpoint snippet at the current cursor position. Creates a conditional block with a breakpoint.";
-
-const command: commandModule.CommandModule = new commandModule.CommandModuleImpl({
-  repoName,
-  commandName,
-  languages,
-  description,
-  pipeline,
-});
+const command: commandModule.CommandModule =
+  new commandModule.CommandModuleImpl({
+    repoName,
+    ixModule: __ix_module,
+    languages,
+    pipeline,
+  });
 
 @commandRegistry.RegisterCommand
 class CommandExport {

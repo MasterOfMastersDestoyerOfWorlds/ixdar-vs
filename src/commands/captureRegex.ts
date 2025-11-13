@@ -8,9 +8,8 @@ import * as commandRegistry from "@/utils/command/commandRegistry";
 import { CommandPipeline } from "@/types/command/commandModule";
 
 /**
- * captureRegex: displays a textbox that accepts regex and turns the text red in the box if the regex is invalid, selects/highlights all of the regex matches in the open file and then copies them to the copy buffer on enter
+ *  @ix-description captureRegex: displays a textbox that accepts regex and turns the text red in the box if the regex is invalid, selects/highlights all of the regex matches in the open file and then copies them to the copy buffer on enter
  */
-const commandName = "captureRegex";
 const languages = undefined;
 const repoName = undefined;
 
@@ -107,15 +106,12 @@ const pipeline: CommandPipeline = {
   },
 };
 
-const description =
-  "Displays a textbox that accepts regex and turns the text red in the box if the regex is invalid, selects/highlights all of the regex matches in the open file and then copies them to the copy buffer on enter";
 
 const command: commandModule.CommandModule =
   new commandModule.CommandModuleImpl({
     repoName,
-    commandName,
+    ixModule: __ix_module,
     languages,
-    description,
     pipeline,
   });
 

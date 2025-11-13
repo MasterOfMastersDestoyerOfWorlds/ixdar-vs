@@ -2,12 +2,14 @@ import * as vscode from "vscode";
 import * as fsNative from "fs";
 import * as path from "path";
 import * as commandModule from "@/types/command/commandModule";
-import * as CommandInputPlan from "@/types/command/CommandInputPlan";
 import * as importer from "@/utils/templating/importer";
 import * as commandRegistry from "@/utils/command/commandRegistry";
 import * as fs from "@/utils/vscode/fs";
+import { CommandPipeline } from "@/types/command/commandModule";
 
-const commandName = "package";
+/**
+ *  @ix-description package: Increment patch version, package the extension into a VSIX file, and install it.
+ */
 const languages = undefined;
 const repoName = importer.EXTENSION_NAME;
 
@@ -17,17 +19,14 @@ interface CommandResult {
   packageName: string;
 }
 
-const pipeline = {
-  execute: async (context: commandModule.CommandRuntimeContext) => {
+const pipeline: CommandPipeline = {
+  execute: async (context) => {
     const workspaceFolder = fs.getWorkspaceFolder();
     const packageJsonPath = path.join(
       workspaceFolder.uri.fsPath,
       "package.json"
     );
-    const vscodeFolderPath = path.join(
-      workspaceFolder.uri.fsPath,
-      ".vscode"
-    );
+    const vscodeFolderPath = path.join(workspaceFolder.uri.fsPath, ".vscode");
 
     try {
       context.addMessage("Incrementing version...");
@@ -135,12 +134,7 @@ const pipeline = {
       throw error;
     }
   },
-  cleanup: async (
-    context: commandModule.CommandRuntimeContext,
-    _inputs: Record<string, never>,
-    result: CommandResult | undefined,
-    error?: unknown
-  ) => {
+  cleanup: async (context, _inputs, result, error) => {
     if (error || !result) {
       return;
     }
@@ -150,16 +144,13 @@ const pipeline = {
   },
 };
 
-const description =
-  "Increment patch version, package the extension into a VSIX file, and install it.";
-
-const command: commandModule.CommandModule = new commandModule.CommandModuleImpl({
-  repoName,
-  commandName,
-  languages,
-  description,
-  pipeline,
-});
+const command: commandModule.CommandModule =
+  new commandModule.CommandModuleImpl({
+    repoName,
+    ixModule: __ix_module,
+    languages,
+    pipeline,
+  });
 
 @commandRegistry.RegisterCommand
 class CommandExport {

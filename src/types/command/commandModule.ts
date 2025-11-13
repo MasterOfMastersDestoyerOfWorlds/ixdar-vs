@@ -124,9 +124,8 @@ export interface CommandModuleOptions<
   TResult,
 > {
   repoName?: string;
-  commandName: string;
   languages?: string[];
-  description: string;
+  ixModule: typeof __ix_module;
   pipeline: CommandPipeline;
 }
 
@@ -151,8 +150,8 @@ export class CommandModuleImpl<TInputs extends Record<string, any>, TResult>
 
   constructor(options: CommandModuleOptions<TInputs, TResult>) {
     this.runtimeContext = new VscodeRuntimeContext(this);
-    this.name = options.commandName;
-    this.description = options.description;
+    this.name = options.ixModule.commandName;
+    this.description = options.ixModule.description;
     this.pipeline = options.pipeline;
     this.meta = {
       category: options.repoName ? "repo" : "general",
@@ -160,7 +159,7 @@ export class CommandModuleImpl<TInputs extends Record<string, any>, TResult>
       languages: options.languages ?? undefined,
     };
 
-    const vscodeId = importer.extensionCommandName(options.commandName);
+    const vscodeId = importer.extensionCommandName(options.ixModule.commandName);
     this.plan = this.pipeline.input?.();
     this.vscodeCommand = {
       id: vscodeId,
@@ -189,7 +188,7 @@ export class CommandModuleImpl<TInputs extends Record<string, any>, TResult>
     this.mcp = {
       enabled: true,
       tool: {
-        description: options.description,
+        description: this.description,
         inputSchema: {
           type: "object",
           properties: {},

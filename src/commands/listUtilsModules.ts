@@ -1,25 +1,18 @@
-
 import * as commandModule from "@/types/command/commandModule";
 import * as CommandInputPlan from "@/types/command/CommandInputPlan";
 import * as utilRegistry from "@/utils/utilRegistry";
 import * as fs from "@/utils/vscode/fs";
 import * as commandRegistry from "@/utils/command/commandRegistry";
+import { CommandPipeline } from "@/types/command/commandModule";
 
 /**
- * listUtilsModules: List all util modules in the registry and output them to a temporary file
+ *  @ix-description listUtilsModules: List all util modules in the registry and output them to a temporary file
  */
-const commandName = "listUtilsModules";
 const languages = undefined;
 const repoName = undefined;
 
-interface CommandResult {
-  moduleCount: number;
-  filePath?: string;
-  content?: string;
-}
-
-const pipeline = {
-  execute: async (context: commandModule.CommandRuntimeContext) => {
+const pipeline: CommandPipeline = {
+  execute: async (context) => {
     const registry = utilRegistry.UtilRegistry.getInstance();
     const utilModules = registry.getAllModules();
 
@@ -47,10 +40,15 @@ const pipeline = {
     ].join("\n");
 
     const timestamp = generatedAt.toISOString().replace(/[:.]/g, "-");
-    const baseName = commandName.replace(/([a-z0-9])([A-Z])/g, "$1-$2").toLowerCase();
+    const baseName = __ix_module.commandName
+      .replace(/([a-z0-9])([A-Z])/g, "$1-$2")
+      .toLowerCase();
     const targetFileName = `${baseName}-${timestamp}.txt`;
 
-    const tempFileUri = await fs.writeWorkspaceTempFile(targetFileName, content);
+    const tempFileUri = await fs.writeWorkspaceTempFile(
+      targetFileName,
+      content
+    );
 
     if (context.collectFile) {
       await context.collectFile(tempFileUri.fsPath, "Util module listing");
@@ -62,12 +60,7 @@ const pipeline = {
       content,
     };
   },
-  cleanup: async (
-    context: commandModule.CommandRuntimeContext,
-    _inputs: Record<string, never>,
-    result: CommandResult | undefined,
-    error?: unknown
-  ) => {
+  cleanup: async (context, _inputs, result, error) => {
     if (error || !result || result.moduleCount === 0) {
       return;
     }
@@ -78,16 +71,13 @@ const pipeline = {
   },
 };
 
-const description =
-  "List all util modules in the registry and output them to a temporary file";
-
-const command: commandModule.CommandModule = new commandModule.CommandModuleImpl({
-  repoName,
-  commandName,
-  languages,
-  description,
-  pipeline,
-});
+const command: commandModule.CommandModule =
+  new commandModule.CommandModuleImpl({
+    repoName,
+    ixModule: __ix_module,
+    languages,
+    pipeline,
+  });
 
 @commandRegistry.RegisterCommand
 class CommandExport {

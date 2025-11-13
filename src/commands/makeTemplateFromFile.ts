@@ -7,11 +7,11 @@ import * as importer from "@/utils/templating/importer";
 import * as commandRegistry from "@/utils/command/commandRegistry";
 import * as fs from "@/utils/vscode/fs";
 import * as inputs from "@/utils/vscode/userInputs";
+import { CommandPipeline } from "@/types/command/commandModule";
 
 /**
- * makeTemplateFromFile: Make a template function from a file by replacing target variables with case-specific template literals.
+ *  @ix-description makeTemplateFromFile: Make a template function from a file by replacing target variables with case-specific template literals.
  */
-const commandName = "makeTemplateFromFile";
 const languages = undefined;
 const repoName = undefined;
 
@@ -62,13 +62,7 @@ export function makeTemplate(${argsList}: string) {\n  return \`${content}\`;\n}
   return templateFile;
 }
 
-interface CommandResult {
-  filePath: string;
-  targets: string[];
-  outputFileName: string;
-}
-
-const pipeline = {
+const pipeline: CommandPipeline = {
   input: () =>
     CommandInputPlan.createInputPlan()
       .step(inputs.currentFileInput())
@@ -104,17 +98,7 @@ const pipeline = {
       outputFileName: inputs.outputFileName,
     };
   },
-  cleanup: async (
-    context: commandModule.CommandRuntimeContext,
-    _inputs: {
-      sourceFilePath?: string;
-      content: string;
-      targets: string[];
-      outputFileName: string;
-    },
-    result: CommandResult | undefined,
-    error?: unknown
-  ) => {
+  cleanup: async (context, _inputs, result, error) => {
     if (error || !result) {
       return;
     }
@@ -125,15 +109,11 @@ const pipeline = {
   },
 };
 
-const description =
-  "Make a template function from a file by replacing target variables with case-specific template literals.";
-
 const command: commandModule.CommandModule =
   new commandModule.CommandModuleImpl({
     repoName,
-    commandName,
+    ixModule: __ix_module,
     languages,
-    description,
     pipeline,
   });
 
