@@ -13,7 +13,7 @@ import type {
 import * as commandRegistry from "@/utils/command/commandRegistry";
 
 /**
- * @description Use this module for all interactions with vscode where we need to get input from the user.
+ * @ix-module-description: Use this module for all interactions with vscode where we need to get input from the user.
  */
 
 /**
@@ -256,7 +256,6 @@ export function folderInput<K extends string = "folderUri">(options?: {
 export function commandInput<K extends string = "commandId">(options?: {
   key?: K;
   argNames?: string[];
-  getAllCommands?: () => Promise<CommandQuickPickItem[]>;
 }): InputStepFactory<K, commandModule.CommandModule> {
   const key = (options?.key ?? "commandId") as K;
   const argNames = options?.argNames ?? ["commandName", "commandId", "command"];
@@ -269,11 +268,7 @@ export function commandInput<K extends string = "commandId">(options?: {
         "Name or ID of the command to execute (e.g. 'removeAllComments' or 'editor.action.formatDocument')",
     },
     prompt: async () => {
-      if (!options?.getAllCommands) {
-        options!.getAllCommands = () =>
-          commandRegistry.getAllCommandQuickPickItems();
-      }
-      const allCommands = await options!.getAllCommands();
+      const allCommands = await commandRegistry.getAllCommandQuickPickItems();
       const selected = await selectCommandQuickPickItem(allCommands);
       return selected.commandModule;
     },

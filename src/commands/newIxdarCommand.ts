@@ -15,7 +15,8 @@ function ixdarCommandTemplate(
 ) {
   return `
 ${importer.getImportModule("vscode")}
-${importer.getImportRelative(commandModule, commandRegistry)}
+${importer.getImportRelative(commandModule, commandRegistry, CommandInputPlan)}
+import { CommandPipeline } from "@/types/command/commandModule";
 ${additionalImports}
 /**
  * @ix-description ${newCommandName}: ${newCommandDescription}
@@ -23,14 +24,11 @@ ${additionalImports}
 const languages = undefined;
 const repoName = undefined;
 
-type InputValues = Record<string, never>;
-type CommandResult = void;
-
-const pipeline: ${importer.getModuleName(commandModule)}.CommandPipeline<InputValues, CommandResult> = {
+const pipeline: CommandPipeline = {
   input: () =>
-    ${importer.getModuleName(commandModule)}.createInputPlan<InputValues>(() => {
-      // Add input steps with builder.step(...)
-    }),
+    ${importer.getModuleName(CommandInputPlan)}.createInputPlan()
+    // Add input steps with builder.step(...)
+    .build(),
   execute: async (_context, _inputs) => {
 ${indentedBody}
   },
@@ -42,7 +40,7 @@ ${indentedBody}
   },
 };
 
-const command: ${importer.getModuleName(commandModule)}.CommandModule = new ${importer.getModuleName(commandModule)}.CommandModuleImpl<InputValues, CommandResult>({
+const command: ${importer.getModuleName(commandModule)}.CommandModule = new ${importer.getModuleName(commandModule)}.CommandModuleImpl({
   repoName,
   ixModule: __ix_module,
   languages,

@@ -1,0 +1,8 @@
+
+node_modules/**
+
+npm_modules/**
+
+out/**
+
+.tmp/**

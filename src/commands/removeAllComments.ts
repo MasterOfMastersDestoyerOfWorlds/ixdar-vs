@@ -76,10 +76,6 @@ async function removeSingleLineComments(
   return nodesToRemove.length;
 }
 
-interface CommandResult {
-  removedComments: number;
-}
-
 const pipeline: CommandPipeline = {
   execute: async () => {
     const editor = inputs.getActiveEditor();

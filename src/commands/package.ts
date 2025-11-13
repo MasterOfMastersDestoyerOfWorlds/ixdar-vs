@@ -13,12 +13,6 @@ import { CommandPipeline } from "@/types/command/commandModule";
 const languages = undefined;
 const repoName = importer.EXTENSION_NAME;
 
-interface CommandResult {
-  version: string;
-  vsixPath: string;
-  packageName: string;
-}
-
 const pipeline: CommandPipeline = {
   execute: async (context) => {
     const workspaceFolder = fs.getWorkspaceFolder();
@@ -81,7 +75,7 @@ const pipeline: CommandPipeline = {
       });
 
       terminal.sendText(
-        `npx @vscode/vsce package -i .vscode/${importer.EXTENSION_NAME}-${newVersion}.vsix`
+        `npx @vscode/vsce package -o .vscode/${importer.EXTENSION_NAME}-${newVersion}.vsix`
       );
       terminal.sendText("npm publish ./build/lib --access public");
 
