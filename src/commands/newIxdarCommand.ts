@@ -64,24 +64,22 @@ const commandName = "newIxdarCommand";
 const languages = undefined;
 const repoName = importer.EXTENSION_NAME;
 
-interface InputValues {
-  newCommandName: string;
-  description: string;
-}
-
 interface CommandResult {
   filePath: string;
   commandName: string;
   description: string;
 }
 
-const pipeline: commandModule.CommandPipeline<InputValues, CommandResult> = {
+const pipeline = {
   input: () =>
-    CommandInputPlan.createInputPlan<InputValues>((builder) => {
-      builder.step(inputs.commandNameInput());
-      builder.step(inputs.commandDescriptionInput({ required: false }));
-    }),
-  execute: async (context, inputs) => {
+    CommandInputPlan.createInputPlan()
+      .step(inputs.commandNameInput())
+      .step(inputs.commandDescriptionInput({ required: false }))
+      .build(),
+  execute: async (
+    context: commandModule.CommandRuntimeContext,
+    inputs: { newCommandName: string; description: string }
+  ) => {
     const workspaceFolder = fs.getWorkspaceFolder();
     const commandsFolderUri = await fs.getCommandsFolderUri(workspaceFolder);
     const newFileUri = vscode.Uri.joinPath(
@@ -121,7 +119,12 @@ const pipeline: commandModule.CommandPipeline<InputValues, CommandResult> = {
       description: inputs.description,
     };
   },
-  cleanup: async (context, _inputs, result, error) => {
+  cleanup: async (
+    context: commandModule.CommandRuntimeContext,
+    _inputs: { newCommandName: string; description: string },
+    result: CommandResult | undefined,
+    error?: unknown
+  ) => {
     if (error || !result) {
       return;
     }
@@ -135,10 +138,7 @@ const pipeline: commandModule.CommandPipeline<InputValues, CommandResult> = {
 const description =
   "Create a new command template file in the commands folder with optional AI-generated code.";
 
-const command: commandModule.CommandModule = new commandModule.CommandModuleImpl<
-  InputValues,
-  CommandResult
->({
+const command: commandModule.CommandModule = new commandModule.CommandModuleImpl({
   repoName,
   commandName,
   languages,

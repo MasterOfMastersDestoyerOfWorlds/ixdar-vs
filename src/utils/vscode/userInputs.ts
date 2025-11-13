@@ -20,16 +20,16 @@ import * as commandRegistry from "@/utils/command/commandRegistry";
  * Factory interface for creating complete input step configurations.
  * Methods in this module return these factories for one-liner input definitions.
  */
-export interface InputStepFactory<T> {
-  key: string;
+export interface InputStepFactory<K extends string, V> {
+  key: K;
   schema: InputSchemaProperty;
   required?: boolean;
-  prompt: (context: VscodeInputContext, currentValues: any) => Promise<T>;
+  prompt: (context: VscodeInputContext, currentValues: any) => Promise<V>;
   resolveFromArgs?: (
     context: McpInputContext,
     currentValues: any
-  ) => Promise<T>;
-  defaultValue?: T;
+  ) => Promise<V>;
+  defaultValue?: V;
 }
 
 /**
@@ -209,11 +209,11 @@ export async function getCommandDescriptionInput(): Promise<string> {
  * @param options - Configuration options for the step.
  * @returns Complete input step configuration.
  */
-export function folderInput(options?: {
-  key?: string;
+export function folderInput<K extends string = "folderUri">(options?: {
+  key?: K;
   argNames?: string[];
-}): InputStepFactory<vscode.Uri> {
-  const key = options?.key ?? "folderUri";
+}): InputStepFactory<K, vscode.Uri> {
+  const key = (options?.key ?? "folderUri") as K;
   const argNames = options?.argNames ?? ["folderPath", "folder"];
 
   return {
@@ -253,12 +253,12 @@ export function folderInput(options?: {
  * @param options - Configuration options for the step.
  * @returns Complete input step configuration.
  */
-export function commandInput(options?: {
-  key?: string;
+export function commandInput<K extends string = "commandId">(options?: {
+  key?: K;
   argNames?: string[];
   getAllCommands?: () => Promise<CommandQuickPickItem[]>;
-}): InputStepFactory<commandModule.CommandModule> {
-  const key = options?.key ?? "commandId";
+}): InputStepFactory<K, commandModule.CommandModule> {
+  const key = (options?.key ?? "commandId") as K;
   const argNames = options?.argNames ?? ["commandName", "commandId", "command"];
 
   return {
@@ -313,11 +313,11 @@ export function commandInput(options?: {
  * @param options - Configuration options for the step.
  * @returns Complete input step configuration.
  */
-export function replacementTargetsInput(options?: {
-  key?: string;
+export function replacementTargetsInput<K extends string = "targets">(options?: {
+  key?: K;
   argName?: string;
-}): InputStepFactory<string[]> {
-  const key = options?.key ?? "targets";
+}): InputStepFactory<K, string[]> {
+  const key = (options?.key ?? "targets") as K;
   const argName = options?.argName ?? "replaceTargets";
 
   return {
@@ -352,12 +352,12 @@ export function replacementTargetsInput(options?: {
  * @param options - Configuration options for the step.
  * @returns Complete input step configuration.
  */
-export function fileNameInput(options?: {
-  key?: string;
+export function fileNameInput<K extends string = "fileName">(options?: {
+  key?: K;
   argName?: string;
   defaultFileName?: string;
-}): InputStepFactory<string> {
-  const key = options?.key ?? "fileName";
+}): InputStepFactory<K, string> {
+  const key = (options?.key ?? "fileName") as K;
   const argName = options?.argName ?? "fileName";
 
   return {
@@ -389,11 +389,11 @@ export function fileNameInput(options?: {
  * @param options - Configuration options for the step.
  * @returns Complete input step configuration.
  */
-export function commandNameInput(options?: {
-  key?: string;
+export function commandNameInput<K extends string = "newCommandName">(options?: {
+  key?: K;
   argName?: string;
-}): InputStepFactory<string> {
-  const key = options?.key ?? "newCommandName";
+}): InputStepFactory<K, string> {
+  const key = (options?.key ?? "newCommandName") as K;
   const argName = options?.argName ?? "newCommandName";
 
   return {
@@ -420,13 +420,13 @@ export function commandNameInput(options?: {
  * @param options - Configuration options for the step.
  * @returns Complete input step configuration.
  */
-export function commandDescriptionInput(options?: {
-  key?: string;
+export function commandDescriptionInput<K extends string = "description">(options?: {
+  key?: K;
   argName?: string;
   required?: boolean;
   defaultValue?: string;
-}): InputStepFactory<string> {
-  const key = options?.key ?? "description";
+}): InputStepFactory<K, string> {
+  const key = (options?.key ?? "description") as K;
   const argName = options?.argName ?? "description";
   const required = options?.required ?? false;
   const defaultValue = options?.defaultValue ?? "";
@@ -466,11 +466,11 @@ export function commandDescriptionInput(options?: {
  * @param options - Configuration options for the step.
  * @returns Complete input step configuration.
  */
-export function activeEditorContentInput(options?: {
-  key?: string;
+export function activeEditorContentInput<K extends string = "content">(options?: {
+  key?: K;
   filePathArgName?: string;
-}): InputStepFactory<string> {
-  const key = options?.key ?? "content";
+}): InputStepFactory<K, string> {
+  const key = (options?.key ?? "content") as K;
   const filePathArgName = options?.filePathArgName ?? "filePath";
 
   return {
@@ -502,12 +502,12 @@ export function activeEditorContentInput(options?: {
  * @param options - Configuration options for the step.
  * @returns Complete input step configuration.
  */
-export function methodInput(options: {
-  key?: string;
+export function methodInput<K extends string = "method">(options: {
+  key?: K;
   argName?: string;
   getMethods: () => Promise<MethodInfo[]>;
-}): InputStepFactory<MethodInfo> {
-  const key = options.key ?? "method";
+}): InputStepFactory<K, MethodInfo> {
+  const key = (options.key ?? "method") as K;
   const argName = options.argName ?? "methodName";
 
   return {
@@ -535,18 +535,16 @@ export function methodInput(options: {
   };
 }
 
-export function templateFileNameInput<
-  TInputValues extends Record<string, any>,
->(): InputStepFactory<string> {
+export function templateFileNameInput(): InputStepFactory<"outputFileName", string> {
   return {
-    key: "outputFileName",
+    key: "outputFileName" as const,
     schema: {
       type: "string",
       description: "File name for the generated template.",
     },
     prompt: async (
       _context: commandModule.VscodeInputContext,
-      currentValues: Partial<TInputValues>
+      currentValues: any
     ) => {
       const methodName =
         typeof currentValues.method?.name === "string"
@@ -556,7 +554,7 @@ export function templateFileNameInput<
     },
     resolveFromArgs: async (
       { args }: commandModule.McpInputContext,
-      currentValues: Partial<TInputValues>
+      currentValues: any
     ) => {
       if (typeof args.outputFileName === "string") {
         return args.outputFileName;
@@ -570,9 +568,9 @@ export function templateFileNameInput<
   };
 }
 
-export function currentFileInput(): InputStepFactory<string> {
+export function currentFileInput(): InputStepFactory<"sourceFilePath", string> {
   return {
-    key: "sourceFilePath",
+    key: "sourceFilePath" as const,
     schema: {
       type: "string",
       description:
@@ -591,9 +589,9 @@ export function currentFileInput(): InputStepFactory<string> {
     },
   };
 }
-export function commandArgsInput(): InputStepFactory<Record<string, unknown>> {
+export function commandArgsInput(): InputStepFactory<"args", Record<string, unknown>> {
   return {
-    key: "args",
+    key: "args" as const,
     schema: {
       type: "object",
       description:
@@ -611,11 +609,9 @@ export function commandArgsInput(): InputStepFactory<Record<string, unknown>> {
     },
   };
 }
-export function selectMethodInFile(): InputStepFactory<
-  string | MethodInfo | string[]
-> {
+export function selectMethodInFile(): InputStepFactory<"method", MethodInfo> {
   return {
-    key: "method",
+    key: "method" as const,
     schema: {
       type: "string",
       description:

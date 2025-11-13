@@ -2,6 +2,7 @@ import * as commandModule from "@/types/command/commandModule";
 import * as CommandInputPlan from "@/types/command/CommandInputPlan";
 import * as commandRegistry from "@/utils/command/commandRegistry";
 import * as userInputs from "@/utils/vscode/userInputs";
+import { CommandPipeline } from "@/types/command/commandModule";
 
 /**
  * ixCommand: In-memory command runner that allows executing any registered command
@@ -11,11 +12,6 @@ const commandName = "ixCommand";
 const languages = undefined;
 const repoName = undefined;
 
-interface InputValues {
-  command: commandModule.CommandModule;
-  args: Record<string, unknown>;
-}
-
 interface CommandResult {
   executed: boolean;
   commandId: string;
@@ -23,33 +19,32 @@ interface CommandResult {
   mcpResult?: commandModule.McpResult | undefined;
 }
 
-const pipeline: commandModule.CommandPipeline<InputValues, CommandResult> = {
+const pipeline: CommandPipeline = {
   input: () =>
-    CommandInputPlan.createInputPlan<InputValues>((builder) => {
-      builder.step(userInputs.commandInput());
-
-      builder.step(userInputs.commandArgsInput());
-    }),
+    CommandInputPlan.createInputPlan()
+      .step(userInputs.commandInput())
+      .step(userInputs.commandArgsInput())
+      .build(),
   execute: async (context, inputs) => {
     if (context.mode === "vscode") {
-      await commandRegistry.executeCommand(inputs.command);
+      await commandRegistry.executeCommand(inputs.commandId);
       return {
         executed: true,
-        commandId: inputs.command.vscodeCommand.id,
+        commandId: inputs.commandId.vscodeCommand.id,
         mode: context.mode,
       };
     }
 
-    if (!inputs.command.mcp?.enabled) {
+    if (!inputs.commandId.mcp?.enabled) {
       throw new Error(
-        `Command '${inputs.command.name}' is not available for MCP execution.`
+        `Command '${inputs.commandId.name}' is not available for MCP execution.`
       );
     }
 
-    const result = await inputs.command.mcp.call(inputs.args);
+    const result = await inputs.commandId.mcp.call(inputs.args);
     return {
       executed: true,
-      commandId: inputs.command.vscodeCommand.id,
+      commandId: inputs.commandId.vscodeCommand.id,
       mode: context.mode,
       mcpResult: result,
     };
@@ -58,23 +53,21 @@ const pipeline: commandModule.CommandPipeline<InputValues, CommandResult> = {
     if (error || !result) {
       return;
     }
-    context.addMessage(`Executed command ${inputs.command.vscodeCommand.id}`);
+    context.addMessage(`Executed command ${inputs.commandId.vscodeCommand.id}`);
   },
 };
 
 const description =
   "Run any registered command from the command registry. Use quick pick in VS Code or specify command name via MCP.";
 
-const command: commandModule.CommandModule = new commandModule.CommandModuleImpl<
-  InputValues,
-  CommandResult
->({
-  repoName,
-  commandName,
-  languages,
-  description,
-  pipeline,
-});
+const command: commandModule.CommandModule =
+  new commandModule.CommandModuleImpl({
+    repoName,
+    commandName,
+    languages,
+    description,
+    pipeline,
+  });
 
 @commandRegistry.RegisterCommand
 class CommandExport {

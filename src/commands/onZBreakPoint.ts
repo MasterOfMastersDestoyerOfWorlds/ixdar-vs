@@ -7,13 +7,12 @@ const commandName = "onZBreakPoint";
 const languages = ["c", "cpp", "java", "csharp"];
 const repoName = undefined;
 
-type InputValues = Record<string, never>;
 interface CommandResult {
   breakpointAdded: boolean;
   line?: number;
 }
 
-const pipeline: commandModule.CommandPipeline<InputValues, CommandResult> = {
+const pipeline = {
   execute: async () => {
     const editor = vscode.window.activeTextEditor;
     if (!editor) {
@@ -38,7 +37,12 @@ const pipeline: commandModule.CommandPipeline<InputValues, CommandResult> = {
       line: breakline.lineNumber,
     };
   },
-  cleanup: async (context, _inputs, result, error) => {
+  cleanup: async (
+    context: commandModule.CommandRuntimeContext,
+    _inputs: Record<string, never>,
+    result: CommandResult | undefined,
+    error?: unknown
+  ) => {
     if (error || !result?.breakpointAdded) {
       return;
     }
@@ -50,10 +54,7 @@ const pipeline: commandModule.CommandPipeline<InputValues, CommandResult> = {
 const description =
   "Insert a z_breakpoint snippet at the current cursor position. Creates a conditional block with a breakpoint.";
 
-const command: commandModule.CommandModule = new commandModule.CommandModuleImpl<
-  InputValues,
-  CommandResult
->({
+const command: commandModule.CommandModule = new commandModule.CommandModuleImpl({
   repoName,
   commandName,
   languages,

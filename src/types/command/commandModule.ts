@@ -73,25 +73,25 @@ export interface CommandRuntimeContext {
   execute(args: Record<string, unknown>): Promise<McpResult>;
 }
 
-export type CommandInputFunc<TInputs extends Record<string, any>> = () =>
-  | CommandInputPlan<TInputs>;
+export type CommandInputFunc = () =>
+  | CommandInputPlan<any>;
 
-export type CommandExecuteFunc<TInputs extends Record<string, any>, TResult> = (
+export type CommandExecuteFunc = (
   context: CommandRuntimeContext,
-  inputs: TInputs
-) => Promise<TResult>;
+  inputs: any
+) => Promise<any>;
 
-export type CommandCleanupFunc<TInputs extends Record<string, any>, TResult> = (
+export type CommandCleanupFunc = (
   context: CommandRuntimeContext,
-  inputs: TInputs,
-  result: TResult | undefined,
+  inputs: any,
+  result: any,
   error?: unknown
 ) => Promise<void>;
 
-export interface CommandPipeline<TInputs extends Record<string, any>, TResult> {
-  input?: CommandInputFunc<TInputs>;
-  execute: CommandExecuteFunc<TInputs, TResult>;
-  cleanup?: CommandCleanupFunc<TInputs, TResult>;
+export interface CommandPipeline {
+  input?: CommandInputFunc;
+  execute: CommandExecuteFunc;
+  cleanup?: CommandCleanupFunc;
 }
 
 export interface CommandAvailabilityMeta {
@@ -116,7 +116,7 @@ export interface CommandModule<
     tool: McpToolDefinition;
     call: (args: any) => Promise<McpResult> | undefined;
   };
-  pipeline: CommandPipeline<TInputs, TResult>;
+  pipeline: CommandPipeline;
 }
 
 export interface CommandModuleOptions<
@@ -127,7 +127,7 @@ export interface CommandModuleOptions<
   commandName: string;
   languages?: string[];
   description: string;
-  pipeline: CommandPipeline<TInputs, TResult>;
+  pipeline: CommandPipeline;
 }
 
 export class CommandModuleImpl<TInputs extends Record<string, any>, TResult>
@@ -136,7 +136,7 @@ export class CommandModuleImpl<TInputs extends Record<string, any>, TResult>
   public readonly meta: CommandAvailabilityMeta;
   public readonly name: string;
   public readonly description: string;
-  public readonly pipeline: CommandPipeline<TInputs, TResult>;
+  public readonly pipeline: CommandPipeline;
   public readonly vscodeCommand: {
     id: string;
     register: (context: ExtensionContext) => void;

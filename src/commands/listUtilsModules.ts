@@ -12,15 +12,14 @@ const commandName = "listUtilsModules";
 const languages = undefined;
 const repoName = undefined;
 
-type InputValues = Record<string, never>;
 interface CommandResult {
   moduleCount: number;
   filePath?: string;
   content?: string;
 }
 
-const pipeline: commandModule.CommandPipeline<InputValues, CommandResult> = {
-  execute: async (context) => {
+const pipeline = {
+  execute: async (context: commandModule.CommandRuntimeContext) => {
     const registry = utilRegistry.UtilRegistry.getInstance();
     const utilModules = registry.getAllModules();
 
@@ -63,7 +62,12 @@ const pipeline: commandModule.CommandPipeline<InputValues, CommandResult> = {
       content,
     };
   },
-  cleanup: async (context, _inputs, result, error) => {
+  cleanup: async (
+    context: commandModule.CommandRuntimeContext,
+    _inputs: Record<string, never>,
+    result: CommandResult | undefined,
+    error?: unknown
+  ) => {
     if (error || !result || result.moduleCount === 0) {
       return;
     }
@@ -77,10 +81,7 @@ const pipeline: commandModule.CommandPipeline<InputValues, CommandResult> = {
 const description =
   "List all util modules in the registry and output them to a temporary file";
 
-const command: commandModule.CommandModule = new commandModule.CommandModuleImpl<
-  InputValues,
-  CommandResult
->({
+const command: commandModule.CommandModule = new commandModule.CommandModuleImpl({
   repoName,
   commandName,
   languages,

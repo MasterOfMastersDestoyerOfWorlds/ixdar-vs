@@ -5,6 +5,7 @@ import * as decor from "@/utils/vscode/decor";
 import * as userInputs from "@/utils/vscode/userInputs";
 import * as strings from "@/utils/templating/strings";
 import * as commandRegistry from "@/utils/command/commandRegistry";
+import { CommandPipeline } from "@/types/command/commandModule";
 
 /**
  * captureRegex: displays a textbox that accepts regex and turns the text red in the box if the regex is invalid, selects/highlights all of the regex matches in the open file and then copies them to the copy buffer on enter
@@ -13,20 +14,11 @@ const commandName = "captureRegex";
 const languages = undefined;
 const repoName = undefined;
 
-interface InputValues {
-  regex: string;
-}
-
-interface CommandResult {
-  matchCount: number;
-  regex: string;
-}
-
-const pipeline: commandModule.CommandPipeline<InputValues, CommandResult> = {
+const pipeline: CommandPipeline = {
   input: () =>
-    CommandInputPlan.createInputPlan<InputValues>((builder) => {
-      builder.step({
-        key: "regex",
+    CommandInputPlan.createInputPlan()
+      .step({
+        key: "regex" as const,
         schema: {
           type: "string",
           description:
@@ -91,8 +83,8 @@ const pipeline: commandModule.CommandPipeline<InputValues, CommandResult> = {
           new RegExp(regex, "g"); // Validate
           return regex;
         },
-      });
-    }),
+      })
+      .build(),
   execute: async (_context, inputs) => {
     const editor = userInputs.getActiveEditor();
     const documentText = editor.document.getText();
@@ -119,7 +111,7 @@ const description =
   "Displays a textbox that accepts regex and turns the text red in the box if the regex is invalid, selects/highlights all of the regex matches in the open file and then copies them to the copy buffer on enter";
 
 const command: commandModule.CommandModule =
-  new commandModule.CommandModuleImpl<InputValues, CommandResult>({
+  new commandModule.CommandModuleImpl({
     repoName,
     commandName,
     languages,

@@ -61,12 +61,12 @@ export class CommandInputPlan<TInputs extends Record<string, any>> {
   }
 }
 
-export class CommandInputBuilder<TInputs extends Record<string, any>> {
-  private readonly steps: CommandInputStep<TInputs>[] = [];
+export class CommandInputBuilder<TInputs extends Record<string, any> = {}> {
+  private readonly steps: CommandInputStep<any>[] = [];
 
-  step<K extends keyof TInputs>(
-    config: CommandInputStepConfig<TInputs, K> | InputStepFactory<TInputs[K]>
-  ): CommandInputBuilder<TInputs> {
+  step<K extends string, V>(
+    config: InputStepFactory<K, V>
+  ): CommandInputBuilder<TInputs & Record<K, V>> {
     if (this.steps.some((step) => step.key === config.key)) {
       throw new Error(`Input plan already defines key '${config.key}'.`);
     }
@@ -74,8 +74,8 @@ export class CommandInputBuilder<TInputs extends Record<string, any>> {
     this.steps.push({
       ...config,
       required: config.required ?? true,
-    } as CommandInputStep<TInputs>);
-    return this;
+    } as CommandInputStep<any>);
+    return this as any as CommandInputBuilder<TInputs & Record<K, V>>;
   }
 
   build(): CommandInputPlan<TInputs> {
@@ -83,10 +83,6 @@ export class CommandInputBuilder<TInputs extends Record<string, any>> {
   }
 }
 
-export function createInputPlan<TInputs extends Record<string, any>>(
-  configure: (builder: CommandInputBuilder<TInputs>) => void
-): CommandInputPlan<TInputs> {
-  const builder = new CommandInputBuilder<TInputs>();
-  configure(builder);
-  return builder.build();
+export function createInputPlan(): CommandInputBuilder<{}> {
+  return new CommandInputBuilder<{}>();
 }

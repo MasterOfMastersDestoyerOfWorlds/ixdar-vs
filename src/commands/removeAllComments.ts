@@ -74,12 +74,11 @@ async function removeSingleLineComments(
   return nodesToRemove.length;
 }
 
-type InputValues = Record<string, never>;
 interface CommandResult {
   removedComments: number;
 }
 
-const pipeline: commandModule.CommandPipeline<InputValues, CommandResult> = {
+const pipeline = {
   execute: async () => {
     const editor = inputs.getActiveEditor();
     const removed = await removeSingleLineComments(editor);
@@ -87,7 +86,12 @@ const pipeline: commandModule.CommandPipeline<InputValues, CommandResult> = {
       removedComments: removed,
     };
   },
-  cleanup: async (context, _inputs, result, _error) => {
+  cleanup: async (
+    context: commandModule.CommandRuntimeContext,
+    _inputs: Record<string, never>,
+    result: CommandResult | undefined,
+    _error?: unknown
+  ) => {
     if (!result) {
       return;
     }
@@ -106,10 +110,7 @@ const pipeline: commandModule.CommandPipeline<InputValues, CommandResult> = {
 const description =
   "Remove all single-line comments from the current file (// or # based on language). Does not remove block comments.";
 
-const command: commandModule.CommandModule = new commandModule.CommandModuleImpl<
-  InputValues,
-  CommandResult
->({
+const command: commandModule.CommandModule = new commandModule.CommandModuleImpl({
   repoName,
   commandName,
   languages,

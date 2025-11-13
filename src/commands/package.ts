@@ -11,15 +11,14 @@ const commandName = "package";
 const languages = undefined;
 const repoName = importer.EXTENSION_NAME;
 
-type InputValues = Record<string, never>;
 interface CommandResult {
   version: string;
   vsixPath: string;
   packageName: string;
 }
 
-const pipeline: commandModule.CommandPipeline<InputValues, CommandResult> = {
-  execute: async (context) => {
+const pipeline = {
+  execute: async (context: commandModule.CommandRuntimeContext) => {
     const workspaceFolder = fs.getWorkspaceFolder();
     const packageJsonPath = path.join(
       workspaceFolder.uri.fsPath,
@@ -136,7 +135,12 @@ const pipeline: commandModule.CommandPipeline<InputValues, CommandResult> = {
       throw error;
     }
   },
-  cleanup: async (context, _inputs, result, error) => {
+  cleanup: async (
+    context: commandModule.CommandRuntimeContext,
+    _inputs: Record<string, never>,
+    result: CommandResult | undefined,
+    error?: unknown
+  ) => {
     if (error || !result) {
       return;
     }
@@ -149,10 +153,7 @@ const pipeline: commandModule.CommandPipeline<InputValues, CommandResult> = {
 const description =
   "Increment patch version, package the extension into a VSIX file, and install it.";
 
-const command: commandModule.CommandModule = new commandModule.CommandModuleImpl<
-  InputValues,
-  CommandResult
->({
+const command: commandModule.CommandModule = new commandModule.CommandModuleImpl({
   repoName,
   commandName,
   languages,

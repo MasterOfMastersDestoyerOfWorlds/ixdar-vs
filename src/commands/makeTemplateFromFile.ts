@@ -62,30 +62,31 @@ export function makeTemplate(${argsList}: string) {\n  return \`${content}\`;\n}
   return templateFile;
 }
 
-interface InputValues {
-  sourceFilePath?: string;
-  templateContent: string;
-  targets: string[];
-  outputFileName: string;
-}
-
 interface CommandResult {
   filePath: string;
   targets: string[];
   outputFileName: string;
 }
 
-const pipeline: commandModule.CommandPipeline<InputValues, CommandResult> = {
+const pipeline = {
   input: () =>
-    CommandInputPlan.createInputPlan<InputValues>((builder) => {
-      builder.step(inputs.currentFileInput());
-      builder.step(inputs.activeEditorContentInput());
-      builder.step(inputs.replacementTargetsInput());
-      builder.step(inputs.templateFileNameInput<InputValues>());
-    }),
-  execute: async (context, inputs) => {
+    CommandInputPlan.createInputPlan()
+      .step(inputs.currentFileInput())
+      .step(inputs.activeEditorContentInput())
+      .step(inputs.replacementTargetsInput())
+      .step(inputs.templateFileNameInput())
+      .build(),
+  execute: async (
+    context: commandModule.CommandRuntimeContext,
+    inputs: {
+      sourceFilePath?: string;
+      content: string;
+      targets: string[];
+      outputFileName: string;
+    }
+  ) => {
     const templateFile = await makeTemplateFromFile(
-      inputs.templateContent,
+      inputs.content,
       inputs.targets,
       inputs.outputFileName
     );
@@ -103,7 +104,17 @@ const pipeline: commandModule.CommandPipeline<InputValues, CommandResult> = {
       outputFileName: inputs.outputFileName,
     };
   },
-  cleanup: async (context, _inputs, result, error) => {
+  cleanup: async (
+    context: commandModule.CommandRuntimeContext,
+    _inputs: {
+      sourceFilePath?: string;
+      content: string;
+      targets: string[];
+      outputFileName: string;
+    },
+    result: CommandResult | undefined,
+    error?: unknown
+  ) => {
     if (error || !result) {
       return;
     }
@@ -118,7 +129,7 @@ const description =
   "Make a template function from a file by replacing target variables with case-specific template literals.";
 
 const command: commandModule.CommandModule =
-  new commandModule.CommandModuleImpl<InputValues, CommandResult>({
+  new commandModule.CommandModuleImpl({
     repoName,
     commandName,
     languages,

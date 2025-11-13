@@ -19,12 +19,6 @@ const languages = undefined;
 const repoName = undefined;
 
 
-interface InputValues {
-  method: MethodInfo;
-  targets: string[];
-  outputFileName: string;
-}
-
 interface CommandResult {
   filePath: string;
   methodName: string;
@@ -32,15 +26,21 @@ interface CommandResult {
   outputFileName: string;
 }
 
-
-const pipeline: commandModule.CommandPipeline<InputValues, CommandResult> = {
+const pipeline = {
   input: () =>
-    CommandInputPlan.createInputPlan<InputValues>((builder) => {
-      builder.step(inputs.selectMethodInFile());
-      builder.step(inputs.replacementTargetsInput());
-      builder.step(inputs.templateFileNameInput<InputValues>());
-    }),
-  execute: async (context, inputs) => {
+    CommandInputPlan.createInputPlan()
+      .step(inputs.selectMethodInFile())
+      .step(inputs.replacementTargetsInput())
+      .step(inputs.templateFileNameInput())
+      .build(),
+  execute: async (
+    context: commandModule.CommandRuntimeContext,
+    inputs: {
+      method: MethodInfo;
+      targets: string[];
+      outputFileName: string;
+    }
+  ) => {
     const templateFile = await makeTemplateFromMethod(
       inputs.method,
       inputs.targets,
@@ -61,7 +61,16 @@ const pipeline: commandModule.CommandPipeline<InputValues, CommandResult> = {
       outputFileName: inputs.outputFileName,
     };
   },
-  cleanup: async (context, _inputs, result, error) => {
+  cleanup: async (
+    context: commandModule.CommandRuntimeContext,
+    _inputs: {
+      method: MethodInfo;
+      targets: string[];
+      outputFileName: string;
+    },
+    result: CommandResult | undefined,
+    error?: unknown
+  ) => {
     if (error || !result) {
       return;
     }
@@ -75,10 +84,7 @@ const pipeline: commandModule.CommandPipeline<InputValues, CommandResult> = {
 const description =
   "Lists all of the methods or functions in a file and allows you to make a template out of one of them";
 
-const command: commandModule.CommandModule = new commandModule.CommandModuleImpl<
-  InputValues,
-  CommandResult
->({
+const command: commandModule.CommandModule = new commandModule.CommandModuleImpl({
   repoName,
   commandName,
   languages,

@@ -125,7 +125,7 @@ export async function getVscodeCommandQuickPickItems(): Promise<
       },
       vscodeCommand: { id: cmd, register: () => {} },
       pipeline: {
-        input: () => createInputPlan<Record<string, never>>(() => {}),
+        input: () => createInputPlan().build(),
         execute: async () => undefined,
       },
       mcp: {

@@ -3,6 +3,9 @@ import * as CommandInputPlan from "@/types/command/CommandInputPlan";
 import * as fs from "@/utils/vscode/fs";
 import * as utilFunctionsReport from "@/utils/command/utilFunctionsReport";
 import * as commandRegistry from "@/utils/command/commandRegistry";
+import {
+  CommandPipeline,
+} from "@/types/command/commandModule";
 
 /**
  * listUtilFunctions: List all util functions in the registry and output them to a temporary file
@@ -11,15 +14,7 @@ const commandName = "listUtilFunctions";
 const languages = undefined;
 const repoName = undefined;
 
-type InputValues = Record<string, never>;
-interface CommandResult {
-  totalFunctions: number;
-  totalModules: number;
-  filePath?: string;
-  content?: string;
-}
-
-const pipeline: commandModule.CommandPipeline<InputValues, CommandResult> = {
+const pipeline: CommandPipeline = {
   execute: async (context) => {
     const report = utilFunctionsReport.buildUtilFunctionsReport();
 
@@ -32,7 +27,9 @@ const pipeline: commandModule.CommandPipeline<InputValues, CommandResult> = {
     }
 
     const timestamp = report.generatedAt.toISOString().replace(/[:.]/g, "-");
-    const baseName = commandName.replace(/([a-z0-9])([A-Z])/g, "$1-$2").toLowerCase();
+    const baseName = commandName
+      .replace(/([a-z0-9])([A-Z])/g, "$1-$2")
+      .toLowerCase();
     const targetFileName = `${baseName}-${timestamp}.txt`;
 
     const tempFileUri = await fs.writeWorkspaceTempFile(
@@ -68,16 +65,14 @@ const pipeline: commandModule.CommandPipeline<InputValues, CommandResult> = {
 const description =
   "List all util functions in the registry and output them to a temporary file";
 
-const command: commandModule.CommandModule = new commandModule.CommandModuleImpl<
-  InputValues,
-  CommandResult
->({
-  repoName,
-  commandName,
-  languages,
-  description,
-  pipeline,
-});
+const command: commandModule.CommandModule =
+  new commandModule.CommandModuleImpl({
+    repoName,
+    commandName,
+    languages,
+    description,
+    pipeline,
+  });
 
 @commandRegistry.RegisterCommand
 class CommandExport {
@@ -85,4 +80,3 @@ class CommandExport {
 }
 
 export default command;
-

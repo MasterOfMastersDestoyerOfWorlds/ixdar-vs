@@ -1,9 +1,9 @@
 import * as vscode from "vscode";
 import * as commandModule from "@/types/command/commandModule";
-import * as CommandInputPlan from "@/types/command/CommandInputPlan";
 import * as commandRegistry from "@/utils/command/commandRegistry";
 import * as parser from "@/utils/templating/parser";
 import * as inputs from "@/utils/vscode/userInputs";
+import { CommandPipeline } from "@/types/command/commandModule";
 
 /**
  * growSelection: Grows the current selection to the containing tree-sitter node
@@ -12,14 +12,7 @@ const commandName = "growSelection";
 const languages = undefined;
 const repoName = undefined;
 
-type InputValues = Record<string, never>;
-interface CommandResult {
-  changed: boolean;
-  start?: { line: number; character: number };
-  end?: { line: number; character: number };
-}
-
-const pipeline: commandModule.CommandPipeline<InputValues, CommandResult> = {
+const pipeline: CommandPipeline = {
   execute: async () => {
     const editor = inputs.getActiveEditor();
     const document = editor.document;
@@ -69,15 +62,14 @@ const pipeline: commandModule.CommandPipeline<InputValues, CommandResult> = {
         character: newSelection.end.character,
       },
     };
-  },
-  cleanup: async (context, _inputs, result, _error) => {},
+  }
 };
 
 const description =
   "Grows the current selection to the containing tree-sitter node";
 
 const command: commandModule.CommandModule =
-  new commandModule.CommandModuleImpl<InputValues, CommandResult>({
+  new commandModule.CommandModuleImpl({
     repoName,
     commandName,
     languages,

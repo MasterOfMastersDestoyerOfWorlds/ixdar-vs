@@ -16,14 +16,13 @@ const repoName = undefined;
 
 
 
-type InputValues = Record<string, never>;
 interface CommandResult {
   addedImports: number;
   missingSymbols: string[];
 }
 
-const pipeline: commandModule.CommandPipeline<InputValues, CommandResult> = {
-  execute: async (context) => {
+const pipeline = {
+  execute: async (context: commandModule.CommandRuntimeContext) => {
     const editor = input.getActiveEditor();
 
     const document = editor.document;
@@ -87,7 +86,12 @@ const pipeline: commandModule.CommandPipeline<InputValues, CommandResult> = {
       missingSymbols: Array.from(unresolvedSymbols),
     };
   },
-  cleanup: async (context, _inputs, result, error) => {
+  cleanup: async (
+    context: commandModule.CommandRuntimeContext,
+    _inputs: Record<string, never>,
+    result: CommandResult | undefined,
+    error?: unknown
+  ) => {
     if (error || !result) {
       return;
     }
@@ -101,10 +105,7 @@ const pipeline: commandModule.CommandPipeline<InputValues, CommandResult> = {
 const description =
   "Looks at any unknown objects in a typescript file and if it matches one of the filenames under ixdar-vs/src/utils or ixdar-vs/src/types it imports it at the top of the file with the @ symbol";
 
-const command: commandModule.CommandModule = new commandModule.CommandModuleImpl<
-  InputValues,
-  CommandResult
->({
+const command: commandModule.CommandModule = new commandModule.CommandModuleImpl({
   repoName,
   commandName,
   languages,

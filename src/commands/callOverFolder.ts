@@ -13,11 +13,6 @@ const commandName = "callOverFolder";
 const languages = undefined;
 const repoName = undefined;
 
-interface InputValues {
-  folderUri: vscode.Uri;
-  command: commandModule.CommandModule;
-}
-
 interface CommandResult {
   totalFiles: number;
   successCount: number;
@@ -26,14 +21,16 @@ interface CommandResult {
   cancelled: boolean;
 }
 
-const pipeline: commandModule.CommandPipeline<InputValues, CommandResult> = {
+const pipeline = {
   input: () =>
-    CommandInputPlan.createInputPlan<InputValues>((builder) => {
-      builder.step(userInputs.folderInput());
-      builder.step(
-        userInputs.commandInput());
-    }),
-  execute: async (_context, inputs) => {
+    CommandInputPlan.createInputPlan()
+      .step(userInputs.folderInput())
+      .step(userInputs.commandInput())
+      .build(),
+  execute: async (
+    _context: commandModule.CommandRuntimeContext,
+    inputs: { folderUri: vscode.Uri; commandId: commandModule.CommandModule }
+  ) => {
     const files = await fs.getAllFiles(inputs.folderUri);
 
     if (files.length === 0) {
@@ -54,7 +51,7 @@ const pipeline: commandModule.CommandPipeline<InputValues, CommandResult> = {
     await vscode.window.withProgress(
       {
         location: vscode.ProgressLocation.Notification,
-        title: `Executing ${inputs.command}`,
+        title: `Executing ${inputs.commandId}`,
         cancellable: true,
       },
       async (progress, token) => {
@@ -79,7 +76,7 @@ const pipeline: commandModule.CommandPipeline<InputValues, CommandResult> = {
               preserveFocus: true,
             });
 
-            await commandRegistry.executeCommand(inputs.command);
+            await commandRegistry.executeCommand(inputs.commandId);
 
             if (document.isDirty) {
               await document.save();
@@ -102,7 +99,12 @@ const pipeline: commandModule.CommandPipeline<InputValues, CommandResult> = {
       cancelled,
     };
   },
-  cleanup: async (context, _inputs, result, error) => {
+  cleanup: async (
+    context: commandModule.CommandRuntimeContext,
+    _inputs: { folderUri: vscode.Uri; commandId: commandModule.CommandModule },
+    result: CommandResult | undefined,
+    error?: unknown
+  ) => {
     if (error || !result) {
       return;
     }
@@ -119,7 +121,7 @@ const pipeline: commandModule.CommandPipeline<InputValues, CommandResult> = {
     }
 
     if (result.errors.length > 0) {
-      result.errors.slice(0, 5).forEach((message) => context.addError(message));
+      result.errors.slice(0, 5).forEach((message: string) => context.addError(message));
     }
 
     context.addMessage(
@@ -131,10 +133,7 @@ const pipeline: commandModule.CommandPipeline<InputValues, CommandResult> = {
 const description =
   "Call any ix command or vscode command over all files and sub folders of a given folder";
 
-const command: commandModule.CommandModule = new commandModule.CommandModuleImpl<
-  InputValues,
-  CommandResult
->({
+const command: commandModule.CommandModule = new commandModule.CommandModuleImpl({
   repoName,
   commandName,
   languages,
