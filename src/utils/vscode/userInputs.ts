@@ -13,7 +13,7 @@ import type {
 import * as commandRegistry from "@/utils/command/commandRegistry";
 
 /**
- * @ix-module-description: Use this module for all interactions with vscode where we need to get input from the user.
+ * @ix-module-description Use this module for all interactions with vscode where we need to get input from the user.
  */
 
 /**
@@ -268,7 +268,7 @@ export function commandInput<K extends string = "commandId">(options?: {
         "Name or ID of the command to execute (e.g. 'removeAllComments' or 'editor.action.formatDocument')",
     },
     prompt: async () => {
-      const allCommands = await commandRegistry.getAllCommandQuickPickItems();
+      const allCommands = await commandRegistry.getIxCommandQuickPickItems();
       const selected = await selectCommandQuickPickItem(allCommands);
       return selected.commandModule;
     },
@@ -283,7 +283,7 @@ export function commandInput<K extends string = "commandId">(options?: {
         throw new Error(`Property '${argNames[0]}' is required.`);
       }
       const registry = commandRegistry.CommandRegistry.getInstance();
-      const allCommands = registry.getAllMcpCommands();
+      const allCommands = registry.getAllIxCommands();
 
       const targetCommand = allCommands.find(
         (cmd) =>

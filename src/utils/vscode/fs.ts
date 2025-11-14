@@ -4,7 +4,7 @@ import * as strings from "@/utils/templating/strings";
 import * as importer from "@/utils/templating/importer";
 
 /**
- * @description Use this module for all file system operations.
+ * @ix-module-description Use this module for all file system operations.
  */
 
 type JsonRecord = Record<string, unknown>;

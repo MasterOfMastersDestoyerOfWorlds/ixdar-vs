@@ -3,7 +3,7 @@ import * as https from "https";
 import * as importer from "@/utils/templating/importer";
 
 /**
- * Use this module to get code generations from an AI model provider
+ * @ix-module-description Use this module to get code generations from an AI model provider.
  */
 
 /**

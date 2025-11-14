@@ -1,4 +1,5 @@
 const path = require("path");
+const { findAnnotation } = require("./commentParser");
 
 function parseParameters(paramList) {
   const parameters = [];
@@ -77,9 +78,13 @@ module.exports = function modulePathLoader(source) {
 
   const relative = relativePath.replace(/\.[^.]+$/, "");
   const modulePath = relative.startsWith("/") ? relative : `/${relative}`;
+
+  const moduleDescription = findAnnotation(source, this.resourcePath, '@ix-module-description');
+
   const injection = `
   export const __modulePath = ${JSON.stringify(modulePath)};
   export const __moduleName = ${JSON.stringify(moduleName)};
+  export const __ix_module_description = ${moduleDescription ? JSON.stringify(moduleDescription) : 'undefined'};
   `;
 
   const functionRegex = /export\s+(async\s+)?function\s+(\w+)\s*\(/g;
@@ -113,13 +118,20 @@ UtilRegistry.getInstance().registerFunction({
 `);
     index++;
   }
-  importUtilRegistry = `import { UtilRegistry } from "@/utils/utilRegistry";`;
+  
+  let importUtilRegistry = `import { UtilRegistry } from "@/utils/utilRegistry";`;
   if (
     /export.*class.*UtilRegistry/.test(source) ||
     /import.*UtilRegistry/.test(source)
   ) {
     importUtilRegistry = "";
   }
+
+  // Pass module description to registerModule
+  const moduleDescriptionArg = moduleDescription 
+    ? `, ${JSON.stringify(moduleDescription)}` 
+    : '';
+
   return (
     source.trimEnd() +
     `
@@ -128,7 +140,7 @@ ${importUtilRegistry}
 
 ${registrations.join("")}
 
-UtilRegistry.getInstance().registerModule("${moduleName}", "${modulePath}");
+UtilRegistry.getInstance().registerModule("${moduleName}", "${modulePath}"${moduleDescriptionArg});
 ` +
     injection
   );

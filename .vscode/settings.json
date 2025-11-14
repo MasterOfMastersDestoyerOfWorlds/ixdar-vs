@@ -10,5 +10,5 @@
 	// Enable MCP server with HTTP transport for development
 	"ixdar-vs.mcp.enabled": true,
 	"ixdar-vs.mcp.transport": "http",
-	"ixdar-vs.mcp.httpPort": 45555
+	"ixdar-vs.mcp.httpPort": 45555,
 }

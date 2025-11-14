@@ -20,9 +20,5 @@
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true
   },
-  "exclude": [
-    "node_modules",
-    "build",
-    "**/*.test.ts"
-  ]
+  "exclude": ["node_modules", "build", "**/*.test.ts"]
 }

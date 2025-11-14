@@ -3,9 +3,8 @@ import * as vscode from "vscode";
 import * as importer from "@/utils/templating/importer";
 import * as strings from "@/utils/templating/strings";
 
-
 /**
- * Use this module to create outputs for the MCP server.
+ * @ix-module-description Use this module to create outputs for the MCP server.
  */
 
 /**

@@ -24,6 +24,7 @@ declare const require: NodeRequire;
 declare const __ix_description: string;
 declare const __modulePath: string;
 declare const __moduleName: string;
+declare const __ix_module_description: string | undefined;
 
 
 declare const __ix_module: {

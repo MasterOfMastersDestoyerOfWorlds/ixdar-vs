@@ -8,9 +8,9 @@ import { MethodInfo } from "@/types/parser";
 import { getMethod } from "@/utils/vscode/userInputs";
 
 /**
- * Use this module for all multi-word string manipulation and structural 
- * pattern matching and structure changes of code files. This module uses
- * tree-sitter for its parsing and structural manipulation.
+ * @ix-module-description Use this module for all multi-word string manipulation and structural
+ *  pattern matching and structure changes of code files. This module uses tree-sitter for its parsing
+ *  and structural manipulation.
  */
 
 export class ParsingError extends Error {

@@ -3,7 +3,6 @@ import * as vscode from "vscode";
 import * as importer from "@/utils/templating/importer";
 import { runWithAvailabilityGuard } from "@/utils/command/availability";
 import { RegisterUtilModule } from "@/utils/utilRegistry";
-import { McpRuntimeContext } from "@/types/command/McpRuntimeContext";
 import { VscodeRuntimeContext } from "@/types/command/VscodeRuntimeContext";
 import { CommandInputPlan } from "./CommandInputPlan";
 

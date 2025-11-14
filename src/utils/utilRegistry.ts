@@ -27,8 +27,10 @@ export interface FunctionMetadata {
  * Utility module information
  */
 export interface UtilModule {
+  category: string;
   name: string;
   filePath: string;
+  description?: string;
 }
 
 /**
@@ -111,14 +113,25 @@ export class UtilRegistry {
    * Register a module with the utility registry
    * @param moduleName The name of the module
    * @param filePath The file path of the module
+   * @param description Optional description of the module
    */
-  registerModule(moduleName: string, filePath: string): void {
+  registerModule(
+    moduleName: string,
+    filePath: string,
+    description?: string
+  ): void {
     if (!moduleName || !filePath) {
       console.warn("Attempted to register module without name or filePath");
       return;
     }
-
-    this.modules.set(moduleName, { name: moduleName, filePath });
+    const pathParts = filePath.split("/");
+    const category = pathParts[pathParts.length - 2];
+    this.modules.set(moduleName, {
+      category,
+      name: moduleName,
+      filePath,
+      description,
+    });
 
     for (const metadata of this.functionMetadata.values()) {
       if (metadata.moduleName === moduleName) {
@@ -133,7 +146,9 @@ export class UtilRegistry {
    */
   registerFunction(metadata: FunctionMetadata): void {
     if (!metadata.moduleName || !metadata.functionName) {
-      console.warn("Attempted to register function without moduleName or functionName");
+      console.warn(
+        "Attempted to register function without moduleName or functionName"
+      );
       return;
     }
 
@@ -143,7 +158,10 @@ export class UtilRegistry {
       filePath: metadata.filePath ?? moduleInfo?.filePath,
     };
 
-    const key = getFunctionKey(metadataWithPath.moduleName, metadataWithPath.functionName);
+    const key = getFunctionKey(
+      metadataWithPath.moduleName,
+      metadataWithPath.functionName
+    );
     this.functionMetadata.set(key, metadataWithPath);
   }
 
@@ -212,7 +230,6 @@ export class UtilRegistry {
   }
 }
 
-
 /**
  * Decorator to register a module with the util registry.
  *
@@ -220,10 +237,17 @@ export class UtilRegistry {
  * @RegisterUtilModule("strings", "@/utils/templating/strings")
  * class StringsModule {}
  */
-export function RegisterUtilModule(moduleName: string, filePath: string) {
+export function RegisterUtilModule(
+  moduleName: string,
+  filePath: string,
+  description?: string
+) {
   return function <T extends { new (...args: any[]): any }>(constructor: T): T {
-    UtilRegistry.getInstance().registerModule(moduleName, filePath);
+    UtilRegistry.getInstance().registerModule(
+      moduleName,
+      filePath,
+      description
+    );
     return constructor;
   };
 }
-

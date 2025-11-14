@@ -1,7 +1,7 @@
 import * as vscode from "vscode";
 
 /**
- * @description Use this module to create decorations for the VS Code editor.
+ * @ix-module-description Use this module to create decorations for the VS Code editor.
  */
 
 /**

@@ -1,7 +1,8 @@
 import * as vscode from "vscode";
 
 /**
- * Use this module for all single word string manipulation, pattern matching, and classification of string types.
+ * @ix-module-description Use this module for all single word string manipulation, pattern matching, 
+ * and classification of string types.
  */
 
 /**
@@ -241,7 +242,10 @@ export function escapeRegex(variation: string) {
   return variation.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
-export async function captureRegex(documentText: string, regexString: string): Promise<string[]> {
+export async function captureRegex(
+  documentText: string,
+  regexString: string
+): Promise<string[]> {
   const regex = new RegExp(regexString, "g");
   const matchedTexts: string[] = [];
   let match;
@@ -279,4 +283,3 @@ export function safeStringify(value: unknown): string {
     return String(value);
   }
 }
-

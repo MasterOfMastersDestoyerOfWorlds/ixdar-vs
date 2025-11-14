@@ -49,7 +49,7 @@ export class CommandRegistry {
   /**
    * Get all registered commands
    */
-  getAllMcpCommands(): CommandModule[] {
+  getAllIxCommands(): CommandModule[] {
     return [...this.commands.filter((cmd) => cmd.mcp !== undefined)];
   }
 
@@ -151,9 +151,9 @@ export class CommandRegistryError extends Error {
   }
 }
 
-export function getMcpCommandQuickPickItems(): CommandQuickPickItem[] {
+export function getIxCommandQuickPickItems(): CommandQuickPickItem[] {
   const registry = CommandRegistry.getInstance();
-  const allCommands = registry.getAllMcpCommands();
+  const allCommands = registry.getAllIxCommands();
 
   if (allCommands.length === 0) {
     throw new CommandRegistryError("No commands are registered.");
@@ -173,7 +173,7 @@ export function getMcpCommandQuickPickItems(): CommandQuickPickItem[] {
 
 export function findCommandById(id: string): CommandModule {
   const registry = CommandRegistry.getInstance();
-  const allCommands = registry.getAllMcpCommands();
+  const allCommands = registry.getAllIxCommands();
 
   const targetCommand = allCommands.find(
     (cmd) =>
@@ -208,6 +208,6 @@ export async function getAllCommandQuickPickItems(): Promise<
   CommandQuickPickItem[]
 > {
   const vscodeItems = await getVscodeCommandQuickPickItems();
-  const items = getMcpCommandQuickPickItems();
+  const items = getIxCommandQuickPickItems();
   return [...vscodeItems, ...items];
 }

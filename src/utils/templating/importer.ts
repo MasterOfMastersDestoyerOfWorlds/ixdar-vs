@@ -2,7 +2,7 @@
 import { UtilModule } from "../utilRegistry";
 
 /**
- * Use this module for generation of import strings, module name, and module path extraction.
+ * @ix-module-description Use this module for generation of import strings, module name, and module path extraction.
  */
 
 /**
