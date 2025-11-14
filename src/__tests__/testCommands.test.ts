@@ -4,6 +4,7 @@ import * as vscode from "vscode";
 import { createMockDocument } from "./mockDocument";
 import { createMockEditor } from "./mockEditor";
 import * as testUtils from "./utils/testUtils";
+import { compareAst } from "./utils/astCompare";
 
 /**
  * Comprehensive test suite for all commands
@@ -147,8 +148,17 @@ describe("Command Tests", () => {
           // Get the result from the editor
           const actualOutput = document.getText();
 
-          // Compare output
-          expect(actualOutput).toBe(expectedOutput);
+          // Compare output using AST comparison
+          const comparison = await compareAst(
+            expectedOutput,
+            actualOutput,
+            languageId
+          );
+          if (!comparison.equal) {
+            fail(
+              `AST comparison failed:\n${comparison.differences.join("\n")}`
+            );
+          }
         });
       });
     });

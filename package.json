@@ -3,8 +3,8 @@
   "displayName": "ixdar-vs",
   "description": "Higher level templating and diff automation",
   "publisher": "KriegEterna",
-  "version": "0.0.32",
-  "icon": "images/favicon.ico",
+  "version": "0.0.33",
+  "icon": "images/ixdar.png",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/MasterOfMastersDestoyerOfWorlds/ixdar-vs.git"
@@ -205,11 +205,13 @@
     "tsconfig-paths-webpack-plugin": "^4.2.0",
     "typescript": "^5.7.3",
     "webpack": "^5.102.1",
-    "webpack-cli": "^6.0.1"
+    "webpack-cli": "^6.0.1",
+    "webpack-sources": "^3.3.3"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.0.4",
     "copyfiles": "^2.4.1",
+    "source-map": "^0.7.6",
     "tree-sitter": "^0.21.0",
     "tree-sitter-c-sharp": "^0.21.0",
     "tree-sitter-java": "^0.21.0",

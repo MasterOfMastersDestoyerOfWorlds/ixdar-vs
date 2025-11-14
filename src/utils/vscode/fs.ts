@@ -2,6 +2,7 @@ import * as path from "path";
 import * as vscode from "vscode";
 import * as strings from "@/utils/templating/strings";
 import * as importer from "@/utils/templating/importer";
+import { parseJsonText } from "typescript";
 
 /**
  * @ix-module-description Use this module for all file system operations.
@@ -127,6 +128,13 @@ export async function makeIxFolder(
     ensureIxTsConfig(ixFolder, ixTsConfigUri, workspaceTsConfig),
     ensureIxGitIgnore(ixFolder, ixGitIgnoreUri, workspaceGitIgnore),
   ]);
+
+  return ixFolder;
+}
+
+export async function installIxDependencies(
+  ixFolder: vscode.Uri
+): Promise<void> {
   const terminal = vscode.window.createTerminal({
     name: "NPM Install",
     cwd: ixFolder.fsPath,
@@ -142,11 +150,10 @@ export async function makeIxFolder(
   });
 
   terminal.show();
+  terminal.sendText("npm update")
   terminal.sendText("npm i; exit");
 
   await installComplete;
-
-  return ixFolder;
 }
 
 /**
@@ -205,19 +212,47 @@ async function ensureIxTsConfig(
   if (normalizedPaths) {
     include.push("../src/**/*");
   }
+  let ixTsConfig: JsonRecord | undefined = await readJsonFile(ixTsConfigUri);
 
-  const ixConfig: JsonRecord = {
-    ...(rootHasConfig ? { extends: "../tsconfig.json" } : {}),
+  const desiredIxTsConfig = {
     compilerOptions: {
-      baseUrl: "..",
-      ...(normalizedPaths ? { paths: normalizedPaths } : {}),
+      module: "commonjs",
+      moduleResolution: "node",
+      target: "ES2022",
+      outDir: "build/lib",
+      lib: ["ES2022"],
+      types: ["vscode", "node", "jest"],
+      sourceMap: true,
+      declaration: true,
+      baseUrl: "./src",
+      paths: {
+        "@/*": ["./*"],
+      },
+      rootDir: "src",
+      strict: true,
+      esModuleInterop: true,
+      skipLibCheck: true,
+      forceConsistentCasingInFileNames: true,
+      experimentalDecorators: true,
+      emitDecoratorMetadata: true,
     },
-    include,
+    exclude: ["node_modules", "build", "**/*.test.ts"],
   };
+
+  if (!ixTsConfig) {
+    ixTsConfig = desiredIxTsConfig;
+  } else {
+    for (const key in desiredIxTsConfig) {
+      if (!(key in ixTsConfig)) {
+        ixTsConfig[key as keyof typeof ixTsConfig] =
+          desiredIxTsConfig[key as keyof typeof desiredIxTsConfig];
+      }
+    }
+  }
 
   await vscode.workspace.fs.writeFile(
     ixTsConfigUri,
-    Buffer.from(JSON.stringify(ixConfig, null, 2) + "\n", "utf8")
+    Buffer.from(JSON.stringify(ixTsConfig, null, 2) + "\n", "utf8")
   );
 }
 
@@ -355,10 +390,7 @@ export async function writeWorkspaceTempFile(
     }
   }
 
-  await vscode.workspace.fs.writeFile(
-    targetUri,
-    Buffer.from(content, "utf8")
-  );
+  await vscode.workspace.fs.writeFile(targetUri, Buffer.from(content, "utf8"));
 
   return targetUri;
 }

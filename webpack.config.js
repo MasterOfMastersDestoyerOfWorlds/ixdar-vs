@@ -8,15 +8,15 @@ const SRC_DIR = path.resolve(__dirname, "src");
 const config = {
   target: "node",
   mode: "none",
+  devtool: "source-map",
 
   entry: "./src/extension.ts",
   output: {
     path: path.resolve(__dirname, "build", "out"),
     filename: "extension.js",
     libraryTarget: "commonjs2",
-    devtoolModuleFilenameTemplate: "../[resource-path]",
+    devtoolModuleFilenameTemplate: "../../[resource-path]",
   },
-  devtool: "source-map",
   externals: {
     vscode: "commonjs vscode",
     "tree-sitter": "commonjs tree-sitter",

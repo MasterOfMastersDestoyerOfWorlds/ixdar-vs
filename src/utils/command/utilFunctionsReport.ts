@@ -38,7 +38,6 @@ export function buildUtilFunctionsReport(): UtilFunctionsReport {
 
   const lines: string[] = [
     "Util Registry Functions",
-    `Generated: ${generatedAt.toISOString()}`,
     `Total Modules: ${sortedModules.length}`,
     `Total Functions: ${allFunctions.length}`,
     "",

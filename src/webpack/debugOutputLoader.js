@@ -83,14 +83,16 @@ function calculateRelativePath(fromFile, toFile) {
   return upPath + toParts.join('/') + '.debug';
 }
 
-module.exports = function debugOutputLoader(source) {
+module.exports = function debugOutputLoader(source, inputSourceMap) {
+  const callback = this.callback;
   const SRC_DIR = path.resolve(this.rootContext, "src");
 
   // Copy all .d.ts files on first loader execution
   copyDeclarationFiles(this.rootContext);
 
   if (!this.resourcePath.startsWith(SRC_DIR)) {
-    return source;
+    callback(null, source, inputSourceMap);
+    return;
   }
 
   const relativePath = this.resourcePath
@@ -139,5 +141,5 @@ module.exports = function debugOutputLoader(source) {
   const debugFile = path.join(debugSubDir, debugFileName);
   fs.writeFileSync(debugFile, transformedSource, "utf8");
 
-  return source; // Return original for webpack to continue processing
+  callback(null, source, inputSourceMap); // Return original for webpack to continue processing
 };

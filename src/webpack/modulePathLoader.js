@@ -1,5 +1,10 @@
 const path = require("path");
 const { findAnnotation } = require("./commentParser");
+const {
+  SourceMapSource,
+  OriginalSource,
+  ConcatSource,
+} = require("webpack-sources");
 
 function parseParameters(paramList) {
   const parameters = [];
@@ -62,11 +67,13 @@ function parseParameters(paramList) {
   });
 }
 
-module.exports = function modulePathLoader(source) {
+module.exports = function modulePathLoader(source, inputSourceMap) {
+  const callback = this.callback;
   const SRC_DIR = path.resolve(this.rootContext, "src");
 
   if (!this.resourcePath.startsWith(SRC_DIR)) {
-    return source;
+    callback(null, source, inputSourceMap);
+    return;
   }
   const relativePath = this.resourcePath
     .slice(SRC_DIR.length)
@@ -79,12 +86,16 @@ module.exports = function modulePathLoader(source) {
   const relative = relativePath.replace(/\.[^.]+$/, "");
   const modulePath = relative.startsWith("/") ? relative : `/${relative}`;
 
-  const moduleDescription = findAnnotation(source, this.resourcePath, '@ix-module-description');
+  const moduleDescription = findAnnotation(
+    source,
+    this.resourcePath,
+    "@ix-module-description"
+  );
 
   const injection = `
   export const __modulePath = ${JSON.stringify(modulePath)};
   export const __moduleName = ${JSON.stringify(moduleName)};
-  export const __ix_module_description = ${moduleDescription ? JSON.stringify(moduleDescription) : 'undefined'};
+  export const __ix_module_description = ${moduleDescription ? JSON.stringify(moduleDescription) : "undefined"};
   `;
 
   const functionRegex = /export\s+(async\s+)?function\s+(\w+)\s*\(/g;
@@ -118,7 +129,7 @@ UtilRegistry.getInstance().registerFunction({
 `);
     index++;
   }
-  
+
   let importUtilRegistry = `import { UtilRegistry } from "@/utils/utilRegistry";`;
   if (
     /export.*class.*UtilRegistry/.test(source) ||
@@ -128,20 +139,42 @@ UtilRegistry.getInstance().registerFunction({
   }
 
   // Pass module description to registerModule
-  const moduleDescriptionArg = moduleDescription 
-    ? `, ${JSON.stringify(moduleDescription)}` 
-    : '';
+  const moduleDescriptionArg = moduleDescription
+    ? `, ${JSON.stringify(moduleDescription)}`
+    : "";
 
-  return (
-    source.trimEnd() +
-    `
+  const moduleRegistration = `
 ${importUtilRegistry}
 
 
 ${registrations.join("")}
 
 UtilRegistry.getInstance().registerModule("${moduleName}", "${modulePath}"${moduleDescriptionArg});
-` +
+`;
+
+  let originalSource;
+  if (!inputSourceMap) {
+    originalSource = new OriginalSource(
+      source,
+      this.resourcePath // Use the resource path as the 'name'
+    );
+  } else {
+    originalSource = new SourceMapSource(
+      source,
+      this.resourcePath,
+      inputSourceMap
+    );
+  }
+
+  const outputSource = new ConcatSource(
+    originalSource,
+    moduleRegistration,
     injection
   );
+
+  // 4. Get the new source AND new map
+  const { source: finalSource, map: finalMap } = outputSource.sourceAndMap();
+
+  // 5. Pass the new source and new map to the callback
+  callback(null, finalSource.toString(), finalMap);
 };

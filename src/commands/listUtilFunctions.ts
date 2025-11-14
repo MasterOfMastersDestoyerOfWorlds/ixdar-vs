@@ -1,5 +1,4 @@
 import * as commandModule from "@/types/command/commandModule";
-import * as CommandInputPlan from "@/types/command/CommandInputPlan";
 import * as fs from "@/utils/vscode/fs";
 import * as utilFunctionsReport from "@/utils/command/utilFunctionsReport";
 import * as commandRegistry from "@/utils/command/commandRegistry";
