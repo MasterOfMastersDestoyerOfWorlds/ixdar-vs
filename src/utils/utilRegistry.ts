@@ -1,7 +1,6 @@
 /**
- * Registry system for tracking utility modules and their exported functions.
- * Modules register themselves via @RegisterUtilModule and individual functions
- * register
+ * @ix-module-description Registry system for tracking utility modules and their exported functions. 
+ * Use this to register modules via @RegisterUtilModule decorator and query available utility functions.
  */
 
 /**

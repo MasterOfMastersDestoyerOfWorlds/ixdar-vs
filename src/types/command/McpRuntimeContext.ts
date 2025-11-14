@@ -7,7 +7,10 @@ import {
 } from "@/types/command/commandModule";
 import { CommandInputPlan } from "./CommandInputPlan";
 import { formatUnknownError, safeStringify } from "@/utils/templating/strings";
-
+/**
+ * @ix-module-description MCP runtime context implementation for commands. Provides message display 
+ * (info/warning/error), file collection, and input resolution for commands running in MCP.
+ */
 export class McpRuntimeContext<TInputs extends Record<string, any>>
   implements CommandRuntimeContext
 {

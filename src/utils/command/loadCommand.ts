@@ -9,6 +9,10 @@ import * as vscode from "vscode";
 
 declare const __non_webpack_require__: (id: string) => any;
 
+/**
+ * @ix-module-description Dynamic command loader for workspace .ix folder. Scans, compiles, and loads 
+ * custom command modules from TypeScript files in .ix directory at runtime.
+ */
 
 /**
  * Loads command modules from the .ix folder in the workspace.

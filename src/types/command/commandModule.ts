@@ -7,6 +7,11 @@ import { VscodeRuntimeContext } from "@/types/command/VscodeRuntimeContext";
 import { CommandInputPlan } from "./CommandInputPlan";
 
 /**
+ * @ix-module-description Core command module types and implementations. Defines the CommandModule interface, 
+ * CommandPipeline for input/execute/cleanup flow, and CommandModuleImpl base class for creating commands.
+ */
+
+/**
  * Command execution modes.
  */
 export type CommandMode = "vscode" | "mcp";

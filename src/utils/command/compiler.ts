@@ -1,6 +1,11 @@
 import * as ts from "typescript";
 import * as path from "path";
 
+/**
+ * @ix-module-description TypeScript compiler utilities for compiling command modules. 
+ * Use this to compile TypeScript files on-the-fly with custom module resolution.
+ */
+
 export function createCompilerHost(
   options: ts.CompilerOptions,
   moduleSearchLocations: string[]

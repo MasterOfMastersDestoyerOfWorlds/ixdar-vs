@@ -283,3 +283,7 @@ export function safeStringify(value: unknown): string {
     return String(value);
   }
 }
+
+export function isWhitespace(category: string): boolean {
+  return category.trim() === "";
+}

@@ -2,6 +2,11 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import type { CommandAvailabilityMeta } from '../../types/command/commandModule';
 
+/**
+ * @ix-module-description Command availability checking based on repository name and language. 
+ * Use this to check if commands should be available in the current context and enforce repository/language constraints.
+ */
+
 export async function getActiveRepoName(): Promise<string | undefined> {
 	try {
 		const activeDoc = vscode.window.activeTextEditor?.document;

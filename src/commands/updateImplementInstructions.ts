@@ -112,10 +112,15 @@ The functionality that is used when we call the command from an MCP server. Sinc
 These descriptions should be available at the top of each utils module in a js-doc marked with @description. If you beleive we need a new of utility file tell me and describe it before making it.
 `);
   for (const category of categories) {
+    if (strings.isWhitespace(category)) {
+      continue;
+    }
     sections.push(`## ${strings.capitalize(category)}`);
     for (const module of modulesByCategory[categories.indexOf(category)]) {
-      sections.push(`### ${module.name}`);
-      sections.push(`${module.description}`);
+      if (module.description) {
+        sections.push(`### ${module.name}`);
+        sections.push(`${module.description}`);
+      }
     }
   }
   return sections.join("\n");

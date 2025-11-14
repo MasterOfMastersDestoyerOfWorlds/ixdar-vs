@@ -7,6 +7,11 @@ import {
 import type { InputStepFactory } from "@/utils/vscode/userInputs";
 
 /**
+ * @ix-module-description Builder system for defining command input collection. Use CommandInputBuilder 
+ * to define steps for gathering user inputs in VSCode or resolving them from MCP arguments.
+ */
+
+/**
  * Step configuration for building an input plan.
  */
 

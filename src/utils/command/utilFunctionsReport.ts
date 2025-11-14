@@ -1,6 +1,9 @@
 import * as utilRegistry from "@/utils/utilRegistry";
 
-
+/**
+ * @ix-module-description Utility functions report generator. Creates formatted snapshots of all 
+ * registered utility functions organized by module for documentation and inspection.
+ */
 
 /**
  * Build a snapshot of all registered util functions including formatted output.

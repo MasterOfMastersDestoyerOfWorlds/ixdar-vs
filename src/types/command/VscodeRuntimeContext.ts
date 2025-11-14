@@ -10,6 +10,11 @@ import {
 import { CommandInputPlan } from "./CommandInputPlan";
 import * as mcp from "@/utils/ai/mcp";
 
+/**
+ * @ix-module-description VSCode runtime context implementation for commands. Provides message display 
+ * (info/warning/error), file collection, and input resolution for commands running in VSCode.
+ */
+
 export class VscodeRuntimeContext<TInputs extends Record<string, any>> implements CommandRuntimeContext {
   private readonly commandModule: CommandModuleImpl<TInputs, any>;
   public readonly mode: CommandMode = "vscode";

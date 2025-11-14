@@ -4,6 +4,12 @@ import {
 } from "@/types/command/commandModule";
 import { createInputPlan } from "@/types/command/CommandInputPlan";
 import * as vscode from "vscode";
+
+/**
+ * @ix-module-description Singleton registry for command modules. Use this to register commands with 
+ * @RegisterCommand decorator, query registered commands, and execute commands programmatically.
+ */
+
 /**
  * Singleton registry for command modules.
  * Commands register themselves using the @RegisterCommand decorator.
