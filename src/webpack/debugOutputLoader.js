@@ -1,10 +1,25 @@
 const fs = require("fs");
 const path = require("path");
 
-/**
- * Debug loader that outputs the transformed source to a debug directory
- * This helps diagnose issues with other loaders in the chain
- */
+function calculateRelativePath(fromFile, toFile) {
+  // fromFile: /commands/callOverFolder.ts
+  // toFile: /utils/vscode/fs
+  // result: ../../utils/vscode/fs.debug
+  
+  const fromParts = fromFile.split('/').filter(Boolean);
+  const toParts = toFile.split('/').filter(Boolean);
+  
+  // Remove filename from fromParts
+  fromParts.pop();
+  
+  // Calculate how many levels up we need to go
+  const upLevels = fromParts.length;
+  const upPath = '../'.repeat(upLevels);
+  
+  // Add .debug suffix to the import path
+  return upPath + toParts.join('/') + '.debug';
+}
+
 module.exports = function debugOutputLoader(source) {
   const SRC_DIR = path.resolve(this.rootContext, "src");
 
@@ -15,10 +30,23 @@ module.exports = function debugOutputLoader(source) {
   const relativePath = this.resourcePath
     .slice(SRC_DIR.length)
     .replace(/\\/g, "/");
-  const moduleName = relativePath
-    .split("/")
-    .pop()
-    .replace(/\.[^.]+$/, "");
+
+  // Transform @/ imports to relative paths with .debug suffix
+  let transformedSource = source.replace(
+    /from\s+["']@\/(.*?)["']/g,
+    (match, importPath) => {
+      const relPath = calculateRelativePath(relativePath, '/' + importPath);
+      return `from "${relPath}"`;
+    }
+  );
+
+  transformedSource = transformedSource.replace(
+    /import\s*\(\s*["']@\/(.*?)["']\s*\)/g,
+    (match, importPath) => {
+      const relPath = calculateRelativePath(relativePath, '/' + importPath);
+      return `import("${relPath}")`;
+    }
+  );
 
   // Create debug directory
   const debugDir = path.resolve(this.rootContext, "build", "webpack-debug");
@@ -35,9 +63,10 @@ module.exports = function debugOutputLoader(source) {
     fs.mkdirSync(debugSubDir, { recursive: true });
   }
 
+  // Output with .debug.ts suffix
+  const moduleName = relativePath.split("/").pop().replace(/\.[^.]+$/, "");
   const debugFile = path.join(debugSubDir, `${moduleName}.debug.ts`);
-  fs.writeFileSync(debugFile, source, "utf8");
+  fs.writeFileSync(debugFile, transformedSource, "utf8");
 
-  return source;
+  return source; // Return original for webpack to continue processing
 };
-

@@ -7,7 +7,7 @@ import {
   CommandInputContext,
   CommandModuleImpl,
 } from "@/types/command/commandModule";
-import { CommandInputPlan } from "./CommandInputPlan";
+import { CommandInputPlan } from "@/types/command/CommandInputPlan";
 import * as mcp from "@/utils/ai/mcp";
 
 /**

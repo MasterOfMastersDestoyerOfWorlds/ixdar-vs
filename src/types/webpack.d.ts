@@ -15,7 +15,7 @@ interface NodeRequire {
     directory: string,
     useSubdirectories?: boolean,
     regExp?: RegExp,
-    mode?: 'sync' | 'eager' | 'weak' | 'lazy' | 'lazy-once'
+    mode?: "sync" | "eager" | "weak" | "lazy" | "lazy-once"
   ): RequireContext;
 }
 
@@ -25,7 +25,6 @@ declare const __ix_description: string;
 declare const __modulePath: string;
 declare const __moduleName: string;
 declare const __ix_module_description: string | undefined;
-
 
 declare const __ix_module: {
   readonly description: string;

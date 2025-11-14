@@ -4,7 +4,7 @@ import * as importer from "@/utils/templating/importer";
 import { runWithAvailabilityGuard } from "@/utils/command/availability";
 import { RegisterUtilModule } from "@/utils/utilRegistry";
 import { VscodeRuntimeContext } from "@/types/command/VscodeRuntimeContext";
-import { CommandInputPlan } from "./CommandInputPlan";
+import { CommandInputPlan } from "@/types/command/CommandInputPlan";
 
 /**
  * @ix-module-description Core command module types and implementations. Defines the CommandModule interface, 

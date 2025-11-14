@@ -1,5 +1,4 @@
-
-import { UtilModule } from "../utilRegistry";
+import { UtilModule } from "@/utils/utilRegistry";
 
 /**
  * @ix-module-description Use this module for generation of import strings, module name, and module path extraction.

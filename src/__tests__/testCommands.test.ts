@@ -1,6 +1,9 @@
 import * as fs from "fs";
 import * as path from "path";
 import * as vscode from "vscode";
+import { createMockDocument } from "./mockDocument";
+import { createMockEditor } from "./mockEditor";
+import * as testUtils from "./utils/testUtils";
 
 /**
  * Comprehensive test suite for all commands
@@ -13,233 +16,10 @@ import * as vscode from "vscode";
  */
 
 describe("Command Tests", () => {
-  const commandsDir = path.join(__dirname, "../commands");
-  const testsDir = __dirname;
-
-  // Helper to get all command files
-  function getCommandFiles(): string[] {
-    if (!fs.existsSync(commandsDir)) {
-      return [];
-    }
-    return fs
-      .readdirSync(commandsDir)
-      .filter((file) => file.endsWith(".ts") && !file.endsWith(".test.ts"))
-      .map((file) => path.basename(file, ".ts"));
-  }
-
-  // Helper to get test folders for a command
-  function getTestFolder(commandName: string): string | null {
-    const testFolder = path.join(testsDir, commandName);
-    if (fs.existsSync(testFolder)) {
-      return testFolder;
-    }
-    return null;
-  }
-
-  // Helper to get test input files
-  function getTestInputFiles(testFolder: string): string[] {
-    const testInDir = path.join(testFolder, "test_in");
-    if (!fs.existsSync(testInDir)) {
-      return [];
-    }
-    return fs.readdirSync(testInDir);
-  }
-
-  // Helper to create a mock document from file content
-  function createMockDocument(
-    content: string,
-    languageId: string = "javascript",
-    uri: string = "test.js"
-  ): vscode.TextDocument {
-    let currentText = content;
-    const lines = content.split("\n");
-
-    return {
-      uri: vscode.Uri.file(uri),
-      fileName: uri,
-      isUntitled: false,
-      languageId,
-      version: 1,
-      isDirty: false,
-      isClosed: false,
-      save: jest.fn(),
-      eol: 1,
-      lineCount: lines.length,
-      getText: jest.fn((range?: any) => {
-        if (range) {
-          // Handle range-based getText
-          return currentText;
-        }
-        return currentText;
-      }),
-      lineAt: jest.fn((line: number) => {
-        const lineText = lines[line] || "";
-        return {
-          lineNumber: line,
-          text: lineText,
-          range: {
-            start: { line, character: 0 },
-            end: { line, character: lineText.length },
-          },
-          rangeIncludingLineBreak: {
-            start: { line, character: 0 },
-            end: { line: line + 1, character: 0 },
-          },
-          firstNonWhitespaceCharacterIndex: lineText.search(/\S/),
-          isEmptyOrWhitespace: lineText.trim().length === 0,
-        };
-      }),
-      offsetAt: jest.fn((position: any) => {
-        let offset = 0;
-        for (let i = 0; i < position.line; i++) {
-          offset += (lines[i]?.length || 0) + 1; // +1 for newline
-        }
-        offset += position.column || position.character || 0;
-        return offset;
-      }),
-      positionAt: jest.fn((offset: number) => {
-        let line = 0;
-        let character = 0;
-        let currentOffset = 0;
-
-        for (let i = 0; i < lines.length; i++) {
-          const lineLength = lines[i].length + 1; // +1 for newline
-          if (currentOffset + lineLength > offset) {
-            line = i;
-            character = offset - currentOffset;
-            break;
-          }
-          currentOffset += lineLength;
-        }
-
-        return { line, character };
-      }),
-      getWordRangeAtPosition: jest.fn(),
-      validateRange: jest.fn((range) => range),
-      validatePosition: jest.fn((position) => position),
-    } as any;
-  }
-
-  // Helper to create a mock editor
-  function createMockEditor(document: vscode.TextDocument): vscode.TextEditor {
-    let editCallback: any = null;
-
-    return {
-      document,
-      selection: {
-        active: { line: 0, character: 0 },
-        start: { line: 0, character: 0 },
-        end: { line: 0, character: 0 },
-        isEmpty: true,
-        isReversed: false,
-        isSingleLine: true,
-        anchor: { line: 0, character: 0 },
-      },
-      selections: [],
-      visibleRanges: [],
-      options: {},
-      viewColumn: 1,
-      edit: jest.fn(async (callback: any) => {
-        // Collect all edits without applying them (like real VS Code API)
-        const edits: Array<{
-          type: 'replace' | 'insert' | 'delete';
-          range?: vscode.Range;
-          position?: vscode.Position;
-          text?: string;
-        }> = [];
-        
-        const editBuilder = {
-          replace: jest.fn((range: vscode.Range, text: string) => {
-            edits.push({ type: 'replace', range, text });
-          }),
-          insert: jest.fn((position: vscode.Position, text: string) => {
-            edits.push({ type: 'insert', position, text });
-          }),
-          delete: jest.fn((range: vscode.Range) => {
-            edits.push({ type: 'delete', range });
-          }),
-        };
-        
-        // Execute callback to collect edits
-        await callback(editBuilder);
-        
-        // Now apply all edits atomically to the ORIGINAL document text
-        const doc = document as any;
-        const originalText = doc.getText();
-        
-        // Convert all edits to offset-based operations
-        const offsetEdits = edits.map((edit) => {
-          if (edit.type === 'replace' && edit.range) {
-            return {
-              startOffset: doc.offsetAt(edit.range.start),
-              endOffset: doc.offsetAt(edit.range.end),
-              text: edit.text || '',
-            };
-          } else if (edit.type === 'insert' && edit.position) {
-            const offset = doc.offsetAt(edit.position);
-            return {
-              startOffset: offset,
-              endOffset: offset,
-              text: edit.text || '',
-            };
-          } else if (edit.type === 'delete' && edit.range) {
-            return {
-              startOffset: doc.offsetAt(edit.range.start),
-              endOffset: doc.offsetAt(edit.range.end),
-              text: '',
-            };
-          }
-          return { startOffset: 0, endOffset: 0, text: '' };
-        });
-        
-        // Sort edits in reverse order (last to first) to avoid offset shifting
-        offsetEdits.sort((a, b) => b.startOffset - a.startOffset);
-        
-        // Apply all edits
-        let newText = originalText;
-        for (const edit of offsetEdits) {
-          newText = 
-            newText.slice(0, edit.startOffset) + 
-            edit.text + 
-            newText.slice(edit.endOffset);
-        }
-        
-        // Update the document with final text
-        doc.getText = jest.fn(() => newText);
-        
-        // Update lines array for lineAt
-        const newLines = newText.split("\n");
-        doc.lineCount = newLines.length;
-        doc.lineAt = jest.fn((line: number) => {
-          const lineText = newLines[line] || "";
-          return {
-            lineNumber: line,
-            text: lineText,
-            range: {
-              start: { line, character: 0 },
-              end: { line, character: lineText.length },
-            },
-            rangeIncludingLineBreak: {
-              start: { line, character: 0 },
-              end: { line: line + 1, character: 0 },
-            },
-            firstNonWhitespaceCharacterIndex: lineText.search(/\S/),
-            isEmptyOrWhitespace: lineText.trim().length === 0,
-          };
-        });
-        
-        return true;
-      }),
-      insertSnippet: jest.fn(),
-      setDecorations: jest.fn(),
-      revealRange: jest.fn(),
-      show: jest.fn(),
-      hide: jest.fn(),
-    } as any;
-  }
 
   // Get all commands
-  const commands = getCommandFiles();
+  const commandsFiles = testUtils.getCommandFiles();
+  const commands = commandsFiles.map((file) => ({fileName: file, commandName: file.replace(".debug", "")}));
 
   if (commands.length === 0) {
     test("should find commands", () => {
@@ -248,25 +28,25 @@ describe("Command Tests", () => {
   }
 
   // Test each command
-  commands.forEach((commandName) => {
-    describe(`Command: ${commandName}`, () => {
-      const testFolder = getTestFolder(commandName);
+  commands.forEach((command) => {
+    describe(`Command: ${command.commandName}`, () => {
+      const testFolder = testUtils.getTestFolder(command.commandName);
 
       if (!testFolder) {
         test(`should have test coverage`, () => {
           fail(
-            `No test folder found for command '${commandName}'. Expected folder at src/__tests__/${commandName}/`
+            `No test folder found for command '${command.commandName}'. Expected folder at src/__tests__/${command.commandName}/`
           );
         });
         return;
       }
 
-      const testInputFiles = getTestInputFiles(testFolder);
+      const testInputFiles = testUtils.getTestInputFiles(testFolder);
 
       if (testInputFiles.length === 0) {
         test(`should have test cases`, () => {
           fail(
-            `No test cases found for command '${commandName}'. Expected files in src/__tests__/${commandName}/test_in/`
+            `No test cases found for command '${command.commandName}'. Expected files in src/__tests__/${command.commandName}/test_in/`
           );
         });
         return;
@@ -276,30 +56,23 @@ describe("Command Tests", () => {
       let commandModule: any;
       let commandFunc: any;
 
-      try {
-        commandModule = require(path.join(commandsDir, commandName));
+      commandModule = require(path.join(testUtils.commandsDir, command.fileName));
 
-        // Try to get the exported commandFunc first (preferred for testing)
-        if (commandModule.commandFunc) {
-          commandFunc = commandModule.commandFunc;
-        } else if (commandModule.default) {
-          // Fall back to extracting from default export
-          const command = commandModule.default;
-          commandFunc =
-            (command as any).__testFunc || (command as any).commandFunc;
-        }
+      // Try to get the exported commandFunc first (preferred for testing)
+      if (commandModule.commandFunc) {
+        commandFunc = commandModule.commandFunc;
+      } else if (commandModule.default) {
+        // Fall back to extracting from default export
+        const command = commandModule.default;
+        commandFunc =
+          (command as any).__testFunc || (command as any).commandFunc;
+      }
 
-        if (!commandFunc) {
-          test(`should export testable command function`, () => {
-            fail(
-              `Command '${commandName}' does not export a testable commandFunc. See TESTING_COMMANDS.md for details.`
-            );
-          });
-          return;
-        }
-      } catch (error) {
-        test(`should load command module`, () => {
-          fail(`Failed to load command module '${commandName}': ${error}`);
+      if (!commandFunc) {
+        test(`should export testable command function`, () => {
+          fail(
+            `Command '${command.commandName}' does not export a testable commandFunc. See TESTING_COMMANDS.md for details.`
+          );
         });
         return;
       }
@@ -372,10 +145,10 @@ describe("Command Tests", () => {
   // Summary test
   test("test coverage summary", () => {
     const commandsWithTests = commands.filter(
-      (cmd) => getTestFolder(cmd) !== null
+      (cmd) => testUtils.getTestFolder(cmd.commandName) !== null
     );
     const commandsWithoutTests = commands.filter(
-      (cmd) => getTestFolder(cmd) === null
+      (cmd) => testUtils.getTestFolder(cmd.commandName) === null
     );
 
     console.log(`\n=== Test Coverage Summary ===`);
@@ -385,7 +158,7 @@ describe("Command Tests", () => {
 
     if (commandsWithoutTests.length > 0) {
       console.log(`\nCommands missing tests:`);
-      commandsWithoutTests.forEach((cmd) => console.log(`  - ${cmd}`));
+      commandsWithoutTests.forEach((cmd) => console.log(`  - ${cmd.commandName}`));
     }
 
     expect(commandsWithoutTests.length).toBe(0);

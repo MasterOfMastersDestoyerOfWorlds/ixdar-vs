@@ -49,3 +49,8 @@ jest.mock('vscode', () => mockVscode, { virtual: true });
 // Export mock for test usage
 export { mockVscode };
 
+// Add Jest fail() helper for compatibility
+(global as any).fail = (message?: string) => {
+  throw new Error(message || 'Test failed');
+};
+

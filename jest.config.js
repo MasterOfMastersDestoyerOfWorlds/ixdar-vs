@@ -4,7 +4,8 @@ module.exports = {
   roots: ['<rootDir>/src'],
   testMatch: ['**/__tests__/**/*.test.ts'],
   moduleNameMapper: {
-    '^@/(.*)$': '<rootDir>/src/$1',
+    '^@/commands/(.*)$': '<rootDir>/build/webpack-debug/commands/$1',
+    '^@/(.*)$': '<rootDir>/build/webpack-debug/$1',
   },
   transform: {
     '^.+\\.ts$': ['ts-jest', {

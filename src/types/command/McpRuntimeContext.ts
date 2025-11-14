@@ -5,7 +5,7 @@ import {
   McpResult,
   CommandModuleImpl,
 } from "@/types/command/commandModule";
-import { CommandInputPlan } from "./CommandInputPlan";
+import { CommandInputPlan } from "@/types/command/CommandInputPlan";
 import { formatUnknownError, safeStringify } from "@/utils/templating/strings";
 /**
  * @ix-module-description MCP runtime context implementation for commands. Provides message display 

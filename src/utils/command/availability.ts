@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
-import type { CommandAvailabilityMeta } from '../../types/command/commandModule';
+import type { CommandAvailabilityMeta } from '@/types/command/commandModule';
 
 /**
  * @ix-module-description Command availability checking based on repository name and language. 
