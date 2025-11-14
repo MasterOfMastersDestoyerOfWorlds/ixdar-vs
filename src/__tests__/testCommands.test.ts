@@ -54,24 +54,22 @@ describe("Command Tests", () => {
 
       // Load the command module
       let commandModule: any;
-      let commandFunc: any;
-
-      commandModule = require(path.join(testUtils.commandsDir, command.fileName));
-
-      // Try to get the exported commandFunc first (preferred for testing)
-      if (commandModule.commandFunc) {
-        commandFunc = commandModule.commandFunc;
-      } else if (commandModule.default) {
-        // Fall back to extracting from default export
-        const command = commandModule.default;
-        commandFunc =
-          (command as any).__testFunc || (command as any).commandFunc;
+      
+      try {
+        commandModule = require(path.join(testUtils.commandsDir, command.fileName));
+      } catch (error) {
+        test(`should load command module`, () => {
+          fail(`Failed to load command '${command.commandName}': ${error}`);
+        });
+        return;
       }
 
-      if (!commandFunc) {
-        test(`should export testable command function`, () => {
+      const commandInstance = commandModule.default;
+
+      if (!commandInstance || !commandInstance.pipeline) {
+        test(`should export valid CommandModule`, () => {
           fail(
-            `Command '${command.commandName}' does not export a testable commandFunc. See TESTING_COMMANDS.md for details.`
+            `Command '${command.commandName}' does not export a valid CommandModule with pipeline.`
           );
         });
         return;
@@ -119,18 +117,32 @@ describe("Command Tests", () => {
           // Set active editor
           (vscode.window as any).activeTextEditor = editor;
 
-          // Execute the command
-          // We need to extract the actual command function
-          // This is tricky because it's wrapped in the CommandModuleImpl
-          // For now, we'll try to execute through the registered command
+          // Create mock runtime context
+          const mockContext = {
+            mode: "vscode" as const,
+            args: {},
+            messages: [] as string[],
+            warnings: [] as string[],
+            errors: [] as string[],
+            addMessage(message: string) {
+              this.messages.push(message);
+            },
+            addWarning(message: string) {
+              this.warnings.push(message);
+            },
+            addError(message: string) {
+              this.errors.push(message);
+            },
+            async collectFile(path: string, label?: string) {
+              // Mock implementation
+            },
+            async execute(args: Record<string, unknown>) {
+              return { content: [], isError: false };
+            },
+          };
 
-          // Alternative: directly access commandFunc if exposed
-          // This requires modifying command structure or using reflection
-
-          // For testing purposes, let's assume we can call the function directly
-          // We'll need to modify this based on actual command structure
-          // Execute the command function
-          await commandFunc();
+          // Execute the command pipeline
+          await commandInstance.runPipeline(mockContext, {});
 
           // Get the result from the editor
           const actualOutput = document.getText();

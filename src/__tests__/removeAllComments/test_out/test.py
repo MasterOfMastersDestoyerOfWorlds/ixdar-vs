@@ -1,4 +1,4 @@
-x = 10
+x = 10  
 
 """
 This is a docstring
@@ -8,6 +8,6 @@ and should NOT be removed
 
 
 def example():
-    return x * 2
+    return x * 2  
 
 

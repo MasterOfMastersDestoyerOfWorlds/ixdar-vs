@@ -1,5 +1,5 @@
-const x = 10;
-const url = "http://example.com";
+const x = 10; 
+const url = "http://example.com"; 
 
 /** 
  * This is a block comment
@@ -8,6 +8,6 @@ const url = "http://example.com";
  */
 
 function example() {
-  return x * 2;
+  return x * 2; 
 }
 
