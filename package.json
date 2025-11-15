@@ -3,7 +3,7 @@
   "displayName": "ixdar-vs",
   "description": "Higher level templating and diff automation",
   "publisher": "KriegEterna",
-  "version": "0.0.33",
+  "version": "0.0.45",
   "icon": "images/ixdar.png",
   "repository": {
     "type": "git",
@@ -170,7 +170,7 @@
   "scripts": {
     "vscode:prepublish": "npm run package",
     "build:clean": "rimraf ./build",
-    "build:lib": "tsc && tsc-alias && copyfiles package.json README.md LICENSE.MD ./build/lib",
+    "build:lib": "tsc && copyfiles package.json README.md LICENSE.MD ./build/lib",
     "build:webpack": "webpack --mode production",
     "compile": "npm run build:clean && npm run build:lib && webpack --mode none",
     "build": "npm run build:clean && npm run build:lib && npm run build:webpack",
@@ -187,8 +187,6 @@
   "devDependencies": {
     "@types/jest": "^29.5.0",
     "@types/mocha": "^10.0.10",
-    "@types/node": "20.x",
-    "@types/vscode": "^1.97.0",
     "@typescript-eslint/eslint-plugin": "^8.22.0",
     "@typescript-eslint/parser": "^8.22.0",
     "@vscode/test-cli": "^0.0.10",
@@ -201,7 +199,6 @@
     "rimraf": "^6.1.0",
     "ts-jest": "^29.1.0",
     "ts-loader": "^9.5.4",
-    "tsc-alias": "^1.8.16",
     "tsconfig-paths-webpack-plugin": "^4.2.0",
     "typescript": "^5.7.3",
     "webpack": "^5.102.1",
@@ -217,6 +214,9 @@
     "tree-sitter-java": "^0.21.0",
     "tree-sitter-javascript": "^0.21.0",
     "tree-sitter-python": "^0.21.0",
+    "typescript": "^5.7.3",
+    "@types/node": "20.x",
+    "@types/vscode": "^1.97.0",
     "zod": "^3.24.1"
   }
 }

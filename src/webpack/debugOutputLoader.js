@@ -53,34 +53,24 @@ function copyDeclarationFiles(rootContext) {
           fs.mkdirSync(debugSubDir, { recursive: true });
         }
 
-        // Write transformed .d.ts file
+        // Write transformed .d.ts file with .debug suffix
         const moduleName = entry.name.replace(/\.d\.ts$/, "");
         const debugFile = path.join(debugSubDir, `${moduleName}.debug.d.ts`);
-        fs.writeFileSync(debugFile, source, "utf8");
+        
+        // Add .debug suffix to imports in type files
+        const sourceWithDebug = source.replace(
+          /from\s+["'](\.\.?\/[^"']+)["']/g,
+          (match, importPath) => {
+            return `from "${importPath}.debug"`;
+          }
+        );
+        
+        fs.writeFileSync(debugFile, sourceWithDebug, "utf8");
       }
     }
   }
 
   processDirectory(SRC_DIR);
-}
-
-function calculateRelativePath(fromFile, toFile) {
-  // fromFile: /commands/callOverFolder.ts
-  // toFile: /utils/vscode/fs
-  // result: ../../utils/vscode/fs.debug
-  
-  const fromParts = fromFile.split('/').filter(Boolean);
-  const toParts = toFile.split('/').filter(Boolean);
-  
-  // Remove filename from fromParts
-  fromParts.pop();
-  
-  // Calculate how many levels up we need to go
-  const upLevels = fromParts.length;
-  const upPath = upLevels > 0 ? '../'.repeat(upLevels) : './';
-  
-  // Add .debug suffix to the import path
-  return upPath + toParts.join('/') + '.debug';
 }
 
 module.exports = function debugOutputLoader(source, inputSourceMap) {
@@ -99,23 +89,6 @@ module.exports = function debugOutputLoader(source, inputSourceMap) {
     .slice(SRC_DIR.length)
     .replace(/\\/g, "/");
 
-  // Transform @/ imports to relative paths with .debug suffix
-  let transformedSource = source.replace(
-    /from\s+["']@\/(.*?)["']/g,
-    (match, importPath) => {
-      const relPath = calculateRelativePath(relativePath, '/' + importPath);
-      return `from "${relPath}"`;
-    }
-  );
-
-  transformedSource = transformedSource.replace(
-    /import\s*\(\s*["']@\/(.*?)["']\s*\)/g,
-    (match, importPath) => {
-      const relPath = calculateRelativePath(relativePath, '/' + importPath);
-      return `import("${relPath}")`;
-    }
-  );
-
   // Create debug directory
   const debugDir = path.resolve(this.rootContext, "build", "webpack-debug");
   if (!fs.existsSync(debugDir)) {
@@ -131,15 +104,26 @@ module.exports = function debugOutputLoader(source, inputSourceMap) {
     fs.mkdirSync(debugSubDir, { recursive: true });
   }
 
-  // Output with .debug.ts or .debug.d.ts suffix
+  // Output with .debug.ts suffix and add .debug to relative imports
   const fileName = relativePath.split("/").pop();
-  const isDeclarationFile = fileName.endsWith(".d.ts");
-  const moduleName = fileName.replace(/\.d\.ts$/, "").replace(/\.ts$/, "");
-  const debugFileName = isDeclarationFile 
-    ? `${moduleName}.debug.d.ts` 
-    : `${moduleName}.debug.ts`;
+  const moduleName = fileName.replace(/\.ts$/, "");
+  const debugFileName = `${moduleName}.debug.ts`;
   const debugFile = path.join(debugSubDir, debugFileName);
-  fs.writeFileSync(debugFile, transformedSource, "utf8");
+  
+  // Add .debug suffix to relative imports for debug output
+  const sourceWithDebug = source.replace(
+    /from\s+["'](\.\.?\/[^"']+)["']/g,
+    (match, importPath) => {
+      return `from "${importPath}.debug"`;
+    }
+  ).replace(
+    /import\s*\(\s*["'](\.\.?\/[^"']+)["']\s*\)/g,
+    (match, importPath) => {
+      return `import("${importPath}.debug")`;
+    }
+  );
+  
+  fs.writeFileSync(debugFile, sourceWithDebug, "utf8");
 
   callback(null, source, inputSourceMap); // Return original for webpack to continue processing
 };

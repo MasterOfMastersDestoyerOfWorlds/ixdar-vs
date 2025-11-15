@@ -72,6 +72,14 @@ const config = {
               __dirname,
               "src",
               "webpack",
+              "relativePathImportsLoader.js"
+            ),
+          },
+          {
+            loader: path.resolve(
+              __dirname,
+              "src",
+              "webpack",
               "descriptionLoader.js"
             ),
           },

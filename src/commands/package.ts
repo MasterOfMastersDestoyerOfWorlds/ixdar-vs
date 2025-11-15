@@ -75,7 +75,7 @@ const pipeline: CommandPipeline = {
       });
 
       terminal.sendText(
-        `npx @vscode/vsce package -o .vscode/${importer.EXTENSION_NAME}-${newVersion}.vsix`
+        `npx @vscode/vsce publish -i .vscode/${importer.EXTENSION_NAME}-${newVersion}.vsix`
       );
       terminal.sendText("npm publish ./build/lib --access public");
 

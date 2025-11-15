@@ -2,13 +2,13 @@ import * as path from "path";
 import * as vscode from "vscode";
 import * as strings from "@/utils/templating/strings";
 import * as importer from "@/utils/templating/importer";
-import { parseJsonText } from "typescript";
+import { JsonRecord } from "@/utils/templating/json";
+import * as ixWorkspace from "@/utils/ixWorkspace/ixWorkspace";
 
 /**
  * @ix-module-description Use this module for all file system operations.
  */
 
-type JsonRecord = Record<string, unknown>;
 
 /**
  * File not found error class
@@ -85,214 +85,19 @@ export async function createTemplateFile(
   if (!workspaceFolder) {
     throw new Error("No workspace folder found");
   }
-  const ixFolder = await makeIxFolder(workspaceFolder);
+  const ixFolder = await ixWorkspace.makeIxFolder(workspaceFolder);
   const templateFile = vscode.Uri.joinPath(ixFolder, fileName);
   await vscode.workspace.fs.writeFile(templateFile, Buffer.from(content));
   return templateFile;
 }
 
-/**
- * Make the .ix folder in the workspace folder.
- * @param workspaceFolder The workspace folder to make the .ix folder in.
- * @returns The URI of the .ix folder.
- */
-export async function makeIxFolder(
-  workspaceFolder?: vscode.WorkspaceFolder
-): Promise<vscode.Uri> {
-  if (!workspaceFolder) {
-    workspaceFolder = vscode.workspace.workspaceFolders?.[0];
-  }
-  if (!workspaceFolder) {
-    throw new Error("No workspace folder found");
-  }
-  const ixFolder = vscode.Uri.joinPath(workspaceFolder.uri, ".ix");
-  try {
-    await vscode.workspace.fs.stat(ixFolder);
-  } catch {
-    await vscode.workspace.fs.createDirectory(ixFolder);
-  }
-  vscode.window.showInformationMessage("Creating ixdar workspace...");
-  const ixGitIgnoreUri = vscode.Uri.joinPath(ixFolder, ".gitignore");
-  const ixPackageJsonUri = vscode.Uri.joinPath(ixFolder, "package.json");
-  const ixTsConfigUri = vscode.Uri.joinPath(ixFolder, "tsconfig.json");
-
-  const [workspacePackage, workspaceTsConfig, workspaceGitIgnore] =
-    await Promise.all([
-      readJsonFile(ixPackageJsonUri),
-      readJsonFile(ixTsConfigUri),
-      readFile(ixGitIgnoreUri),
-    ]);
-
-  await Promise.all([
-    ensureIxPackageJson(ixFolder, ixPackageJsonUri, workspacePackage),
-    ensureIxTsConfig(ixFolder, ixTsConfigUri, workspaceTsConfig),
-    ensureIxGitIgnore(ixFolder, ixGitIgnoreUri, workspaceGitIgnore),
-  ]);
-
-  return ixFolder;
-}
-
-export async function installIxDependencies(
-  ixFolder: vscode.Uri
-): Promise<void> {
-  const terminal = vscode.window.createTerminal({
-    name: "NPM Install",
-    cwd: ixFolder.fsPath,
-  });
-
-  const installComplete = new Promise<void>((resolve) => {
-    const disposable = vscode.window.onDidCloseTerminal((closedTerminal) => {
-      if (closedTerminal === terminal) {
-        disposable.dispose();
-        resolve();
-      }
-    });
-  });
-
-  terminal.show();
-  terminal.sendText("npm update")
-  terminal.sendText("npm i; exit");
-
-  await installComplete;
-}
-
-/**
- * Ensure the .ix package.json file is correct.
- * @param ixFolder The .ix folder.
- * @param ixPackageJsonUri The URI of the .ix package.json file.
- * @param workspacePackage The workspace package.json file.
- * @returns The URI of the .ix package.json file.
- */
-async function ensureIxPackageJson(
-  ixFolder: vscode.Uri,
-  ixPackageJsonUri: vscode.Uri,
-  workspacePackage: JsonRecord | undefined
-): Promise<void> {
-  const workspaceVersion =
-    typeof workspacePackage?.version === "string"
-      ? workspacePackage.version
-      : undefined;
-  const desiredPackage = {
-    name: "ix-templates",
-    private: true,
-    dependencies: {
-      [importer.EXTENSION_NAME]: workspaceVersion ?? "latest",
-    },
-  } satisfies JsonRecord;
-
-  await vscode.workspace.fs.writeFile(
-    ixPackageJsonUri,
-    Buffer.from(JSON.stringify(desiredPackage, null, 2) + "\n", "utf8")
-  );
-}
-
-/**
- * Ensure the .ix tsconfig.json file is correct.
- * @param ixFolder The .ix folder.
- * @param ixTsConfigUri The URI of the .ix tsconfig.json file.
- * @param workspaceTsConfig The workspace tsconfig.json file.
- * @returns The URI of the .ix tsconfig.json file.
- */
-async function ensureIxTsConfig(
-  ixFolder: vscode.Uri,
-  ixTsConfigUri: vscode.Uri,
-  workspaceTsConfig: JsonRecord | undefined
-): Promise<void> {
-  const rootHasConfig = Boolean(workspaceTsConfig);
-  const compilerOptions =
-    (workspaceTsConfig?.compilerOptions as JsonRecord | undefined) ?? {};
-  const rootBaseUrl =
-    typeof compilerOptions.baseUrl === "string" ? compilerOptions.baseUrl : ".";
-  const rootPaths =
-    (compilerOptions.paths as Record<string, string[]> | undefined) ?? {};
-
-  const normalizedPaths = normalizePathMappings(rootBaseUrl, rootPaths);
-
-  const include: string[] = ["./**/*"];
-  if (normalizedPaths) {
-    include.push("../src/**/*");
-  }
-  let ixTsConfig: JsonRecord | undefined = await readJsonFile(ixTsConfigUri);
-
-  const desiredIxTsConfig = {
-    compilerOptions: {
-      module: "commonjs",
-      moduleResolution: "node",
-      target: "ES2022",
-      outDir: "build/lib",
-      lib: ["ES2022"],
-      types: ["vscode", "node", "jest"],
-      sourceMap: true,
-      declaration: true,
-      baseUrl: "./src",
-      paths: {
-        "@/*": ["./*"],
-      },
-      rootDir: "src",
-      strict: true,
-      esModuleInterop: true,
-      skipLibCheck: true,
-      forceConsistentCasingInFileNames: true,
-      experimentalDecorators: true,
-      emitDecoratorMetadata: true,
-    },
-    exclude: ["node_modules", "build", "**/*.test.ts"],
-  };
-
-  if (!ixTsConfig) {
-    ixTsConfig = desiredIxTsConfig;
-  } else {
-    for (const key in desiredIxTsConfig) {
-      if (!(key in ixTsConfig)) {
-        ixTsConfig[key as keyof typeof ixTsConfig] =
-          desiredIxTsConfig[key as keyof typeof desiredIxTsConfig];
-      }
-    }
-  }
-
-  await vscode.workspace.fs.writeFile(
-    ixTsConfigUri,
-    Buffer.from(JSON.stringify(ixTsConfig, null, 2) + "\n", "utf8")
-  );
-}
-
-/**
- * Ensure the .ix gitignore file is correct.
- * @param ixFolder The .ix folder.
- * @param ixGitIgnoreUri The URI of the .ix gitignore file.
- * @param workspaceGitIgnore The workspace gitignore file.
- * @returns The URI of the .ix gitignore file.
- */
-async function ensureIxGitIgnore(
-  ixFolder: vscode.Uri,
-  ixGitIgnoreUri: vscode.Uri,
-  workspaceGitIgnore: string | undefined
-): Promise<void> {
-  let desiredGitIgnore = workspaceGitIgnore ?? "";
-  if (!desiredGitIgnore.includes("node_modules/**")) {
-    desiredGitIgnore += "\nnode_modules/**\n";
-  }
-  if (!desiredGitIgnore.includes("npm_modules/**")) {
-    desiredGitIgnore += "\nnpm_modules/**\n";
-  }
-  if (!desiredGitIgnore.includes("out/**")) {
-    desiredGitIgnore += "\nout/**\n";
-  }
-  if (!desiredGitIgnore.includes(".tmp/**")) {
-    desiredGitIgnore += "\n.tmp/**\n";
-  }
-  await vscode.workspace.fs.writeFile(
-    ixGitIgnoreUri,
-    Buffer.from(desiredGitIgnore, "utf8")
-  );
-}
 
 /**
  * Read a JSON file.
  * @param uri The URI of the JSON file.
  * @returns The JSON record of the file.
  */
-async function readJsonFile(uri: vscode.Uri): Promise<JsonRecord | undefined> {
+export async function readJsonFile(uri: vscode.Uri): Promise<JsonRecord | undefined> {
   try {
     const bytes = await vscode.workspace.fs.readFile(uri);
     const text = Buffer.from(bytes).toString("utf8");
@@ -307,7 +112,7 @@ async function readJsonFile(uri: vscode.Uri): Promise<JsonRecord | undefined> {
  * @param uri The URI of the file.
  * @returns The content of the file.
  */
-async function readFile(uri: vscode.Uri): Promise<string | undefined> {
+export async function readFile(uri: vscode.Uri): Promise<string | undefined> {
   try {
     const bytes = await vscode.workspace.fs.readFile(uri);
     return Buffer.from(bytes).toString("utf8");
@@ -322,7 +127,7 @@ async function readFile(uri: vscode.Uri): Promise<string | undefined> {
  * @param paths The paths to normalize.
  * @returns The normalized paths.
  */
-function normalizePathMappings(
+export function normalizePathMappings(
   baseUrl: string,
   paths: Record<string, string[]>
 ): Record<string, string[]> | undefined {
@@ -374,7 +179,7 @@ export async function writeWorkspaceTempFile(
   content: string,
   workspaceFolder?: vscode.WorkspaceFolder
 ): Promise<vscode.Uri> {
-  const ixFolder = await makeIxFolder(workspaceFolder);
+  const ixFolder = await ixWorkspace.makeIxFolder(workspaceFolder);
   const tempDir = vscode.Uri.joinPath(ixFolder, ".tmp");
   const { name, ext } = path.parse(fileName);
   let targetUri = vscode.Uri.joinPath(tempDir, fileName);

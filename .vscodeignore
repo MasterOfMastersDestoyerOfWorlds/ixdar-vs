@@ -10,4 +10,7 @@ vsc-extension-quickstart.md
 **/*.ts
 **/.vscode-test.*
 webpack.config.js
-lib/**
+build/lib/**
+build/webpack-debug/**
+.ix/**
+.cursor/**
